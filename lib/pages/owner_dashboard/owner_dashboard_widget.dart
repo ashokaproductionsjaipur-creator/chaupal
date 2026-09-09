@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -85,11 +86,11 @@ class _ProfileAvatar extends StatelessWidget {
   final double radius;
   @override Widget build(BuildContext context){
     if(path==null||path!.isEmpty)return CircleAvatar(radius:radius,child:const Icon(Icons.person,size:32));
-    return FutureBuilder<String>(
-      future:SupaFlow.client.storage.from('profile-media').createSignedUrl(path!,3600),
+    return FutureBuilder<Uint8List>(
+      future:SupaFlow.client.storage.from('profile-media').download(path!),
       builder:(context,snapshot){
-        if(snapshot.connectionState==ConnectionState.done&&snapshot.hasData)return CircleAvatar(radius:radius,backgroundImage:NetworkImage(snapshot.data!));
-        return CircleAvatar(radius:radius,child:snapshot.hasError?const Icon(Icons.person,size:32):const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2)));
+        if(snapshot.connectionState==ConnectionState.done&&snapshot.hasData)return CircleAvatar(radius:radius,backgroundImage:MemoryImage(snapshot.data!));
+        return CircleAvatar(radius:radius,child:snapshot.hasError?const Icon(Icons.person,size:32):const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2));
       },
     );
   }
