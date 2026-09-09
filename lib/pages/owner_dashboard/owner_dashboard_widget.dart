@@ -89,7 +89,7 @@ class _ProfileAvatar extends StatelessWidget {
       future:SupaFlow.client.storage.from('profile-media').createSignedUrl(path!,3600),
       builder:(context,snapshot){
         if(snapshot.connectionState==ConnectionState.done&&snapshot.hasData)return CircleAvatar(radius:radius,backgroundImage:NetworkImage(snapshot.data!));
-        return CircleAvatar(radius:radius,child:snapshot.hasError?const Icon(Icons.person,size:32):const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2));
+        return CircleAvatar(radius:radius,child:snapshot.hasError?const Icon(Icons.person,size:32):const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2)));
       },
     );
   }
