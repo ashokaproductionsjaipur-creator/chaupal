@@ -17,14 +17,14 @@ class ChaupalLoginCall {
     final ffApiRequestBody = '''
 {
   "action": "login",
-  "username": "[${escapeStringForJson(username)}]",
-  "password": "[${escapeStringForJson(password)}]",
-  "role": "[${escapeStringForJson(selectedRole)}]"
+  "username": "${escapeStringForJson(username)}",
+  "password": "${escapeStringForJson(password)}",
+  "role": "${escapeStringForJson(selectedRole)}"
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'ChaupalLogin',
       apiUrl:
-          'https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/chaupal-login-v2',
+          'https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/username-auth',
       callType: ApiCallType.POST,
       headers: {
         'Content-Type': 'application/json',
@@ -53,21 +53,11 @@ class ChaupalSignupCall {
     final ffApiRequestBody = '''
 {
   "action": "signup",
-  "username": [
-    "${escapeStringForJson(username)}"
-  ],
-  "password": [
-    "${escapeStringForJson(password)}"
-  ],
-  "role": [
-    "${escapeStringForJson(role)}"
-  ],
-  "full_name": [
-    "${escapeStringForJson(fullName)}"
-  ],
-  "mobile_number": [
-    "${escapeStringForJson(mobileNumber)}"
-  ]
+  "username": "${escapeStringForJson(username)}",
+  "password": "${escapeStringForJson(password)}",
+  "role": "${escapeStringForJson(role)}",
+  "full_name": "${escapeStringForJson(fullName)}",
+  "mobile_number": "${escapeStringForJson(mobileNumber)}"
 }''';
     return ApiManager.instance.makeApiCall(
       callName: 'ChaupalSignup',
