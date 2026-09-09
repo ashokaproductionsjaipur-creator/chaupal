@@ -24,7 +24,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
   void initState() {
     super.initState();
     jobsFuture = _loadJobs();
-    requestsFuture = Future.value([]);
+    requestsFuture = Future.value(<Map<String, dynamic>>[]);
   }
 
   @override
@@ -39,35 +39,62 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
   }
 
   Future<List<Map<String, dynamic>>> _loadRequests(String jobId) async {
-    final r = await SupaFlow.client.rpc('get_owner_job_requests', params: {'p_job_id': jobId});
+    final r = await SupaFlow.client.rpc(
+      'get_owner_job_requests',
+      params: {'p_job_id': jobId},
+    );
     return List<Map<String, dynamic>>.from(r as List);
   }
 
   void _openJob(Map<String, dynamic> job) {
+    final id = job['job_id']?.toString();
+    if (id == null || id.isEmpty) return;
     setState(() {
       selectedJob = job;
-      requestsFuture = _loadRequests(job['job_id'].toString());
+      requestsFuture = _loadRequests(id);
     });
   }
 
   Future<void> _refreshJobs() async {
-    setState(() => jobsFuture = _loadJobs());
-    await jobsFuture;
+    final future = _loadJobs();
+    setState(() => jobsFuture = future);
+    await future;
+  }
+
+  Future<void> _refreshSelectedJob() async {
+    final id = selectedJob?['job_id']?.toString();
+    if (id == null || id.isEmpty) return;
+    try {
+      final jobs = await _loadJobs();
+      final match = jobs.where((j) => j['job_id']?.toString() == id).toList();
+      final requests = _loadRequests(id);
+      if (!mounted) return;
+      setState(() {
+        jobsFuture = Future.value(jobs);
+        if (match.isNotEmpty) selectedJob = match.first;
+        requestsFuture = requests;
+      });
+      await requests;
+    } catch (_) {
+      if (mounted) setState(() => requestsFuture = _loadRequests(id));
+    }
   }
 
   Future<String?> _signedJob(String? path) async {
-    if (path == null || path.trim().isEmpty || path == 'null') return null;
+    final p = path?.trim() ?? '';
+    if (p.isEmpty || p == 'null') return null;
     try {
-      return await SupaFlow.client.storage.from('job-media').createSignedUrl(path, 600);
+      return await SupaFlow.client.storage.from('job-media').createSignedUrl(p, 600);
     } catch (_) {
       return null;
     }
   }
 
   Future<String?> _signedProfile(String? path) async {
-    if (path == null || path.trim().isEmpty || path == 'null') return null;
+    final p = path?.trim() ?? '';
+    if (p.isEmpty || p == 'null') return null;
     try {
-      return await SupaFlow.client.storage.from('profile-media').createSignedUrl(path, 600);
+      return await SupaFlow.client.storage.from('profile-media').createSignedUrl(p, 600);
     } catch (_) {
       return null;
     }
@@ -89,7 +116,10 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('कामगार स्वीकार करें'),
-        content: Text('क्या ${r['worker_name']} को यह जॉब देना है?\n\nमोबाइल: ${r['worker_mobile']}\nरेट: ₹${r['offered_amount']}'),
+        content: Text(
+          'क्या ${r['worker_name'] ?? 'कामगार'} को यह जॉब देना है?\n\n'
+          'मोबाइल: ${r['worker_mobile'] ?? '-'}\nरेट: ₹${r['offered_amount'] ?? '-'}',
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('रद्द करें')),
           FilledButton(
@@ -125,7 +155,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('अनुरोध अस्वीकार करें'),
-        content: Text('क्या ${r['worker_name']} का अनुरोध अस्वीकार करना है?'),
+        content: Text('क्या ${r['worker_name'] ?? 'कामगार'} का अनुरोध अस्वीकार करना है?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('रद्द करें')),
           FilledButton(
@@ -151,25 +181,14 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
     }
   }
 
-  Future<void> _refreshSelectedJob() async {
-    final id = selectedJob?['job_id']?.toString();
-    if (id == null) return;
-    final jobs = await _loadJobs();
-    final updated = jobs.where((j) => j['job_id'].toString() == id).toList();
-    if (!mounted) return;
-    setState(() {
-      jobsFuture = Future.value(jobs);
-      if (updated.isNotEmpty) selectedJob = updated.first;
-      requestsFuture = _loadRequests(id);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
     return Scaffold(
       backgroundColor: t.primaryBackground,
-      appBar: ChaupalAppHeader(title: selectedJob == null ? 'मेरी पोस्ट की गई जॉब्स' : 'कामगार अनुरोध'),
+      appBar: ChaupalAppHeader(
+        title: selectedJob == null ? 'मेरी पोस्ट की गई जॉब्स' : 'कामगार अनुरोध',
+      ),
       body: selectedJob == null ? _jobList(t) : _requestPage(t),
     );
   }
@@ -179,9 +198,13 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
       future: jobsFuture,
       builder: (context, s) {
         if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-        if (s.hasError) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('आपकी जॉब्स लोड नहीं हो सकीं।')));
-        final jobs = s.data ?? [];
-        if (jobs.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('अभी आपकी कोई पोस्ट की गई जॉब नहीं है।')));
+        if (s.hasError) {
+          return _errorBox('आपकी जॉब्स लोड नहीं हो सकीं।', () => _refreshJobs());
+        }
+        final jobs = s.data ?? <Map<String, dynamic>>[];
+        if (jobs.isEmpty) {
+          return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('अभी आपकी कोई पोस्ट की गई जॉब नहीं है।')));
+        }
         return RefreshIndicator(
           onRefresh: _refreshJobs,
           child: ListView.separated(
@@ -206,21 +229,17 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
       child: InkWell(
         onTap: () => _openJob(j),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (photo.isNotEmpty)
-            FutureBuilder<String?>(
-              future: _signedJob(photo),
-              builder: (context, s) {
-                if (s.connectionState != ConnectionState.done) return const SizedBox(height: 170, child: Center(child: CircularProgressIndicator()));
-                if (!s.hasData || s.data == null) return Container(height: 120, width: double.infinity, alignment: Alignment.center, child: const Icon(Icons.image_not_supported_outlined, size: 42));
-                return Image.network(s.data!, height: 190, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(height: 120, width: double.infinity, alignment: Alignment.center, child: const Icon(Icons.image_not_supported_outlined, size: 42)));
-              },
-            ),
+          if (photo.isNotEmpty) _jobPhoto(photo, height: 190),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Expanded(child: Text('${j['title'] ?? '-'}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900))),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), decoration: BoxDecoration(color: count > 0 ? const Color(0xFF16A34A) : const Color(0xFF64748B), borderRadius: BorderRadius.circular(22)), child: Text('$count अनुरोध', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(color: count > 0 ? const Color(0xFF16A34A) : const Color(0xFF64748B), borderRadius: BorderRadius.circular(22)),
+                  child: Text('$count अनुरोध', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                ),
               ]),
               const SizedBox(height: 9),
               Text('काम: ${j['profession_name'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -229,7 +248,16 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
               const SizedBox(height: 5),
               Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 15)),
               const SizedBox(height: 12),
-              SizedBox(width: double.infinity, height: 52, child: FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white), onPressed: () => _openJob(j), icon: const Icon(Icons.people_alt_outlined, size: 26), label: Text(count > 0 ? 'कामगार अनुरोध देखें' : 'जॉब खोलें', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
+                  onPressed: () => _openJob(j),
+                  icon: const Icon(Icons.people_alt_outlined, size: 26),
+                  label: Text(count > 0 ? 'कामगार अनुरोध देखें' : 'जॉब खोलें', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                ),
+              ),
             ]),
           ),
         ]),
@@ -245,7 +273,16 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
         children: [
-          SizedBox(width: double.infinity, height: 50, child: OutlinedButton.icon(style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF2563EB), side: const BorderSide(color: Color(0xFF2563EB), width: 2)), onPressed: busy ? null : () => setState(() => selectedJob = null), icon: const Icon(Icons.arrow_back, size: 25), label: const Text('सभी जॉब्स देखें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF2563EB), side: const BorderSide(color: Color(0xFF2563EB), width: 2)),
+              onPressed: busy ? null : () => setState(() => selectedJob = null),
+              icon: const Icon(Icons.arrow_back, size: 25),
+              label: const Text('सभी जॉब्स देखें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            ),
+          ),
           const SizedBox(height: 12),
           _jobSummary(t, j),
           const SizedBox(height: 18),
@@ -253,17 +290,30 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
             future: requestsFuture,
             builder: (context, s) {
               if (s.connectionState != ConnectionState.done) return const Padding(padding: EdgeInsets.all(35), child: Center(child: CircularProgressIndicator()));
-              if (s.hasError) return const Padding(padding: EdgeInsets.all(20), child: Text('इस जॉब के अनुरोध लोड नहीं हो सके।'));
-              final rows = s.data ?? [];
-              final pending = rows.where((r) => '${r['request_status']}' == 'pending').toList();
+              if (s.hasError) {
+                return _errorBox('इस जॉब के अनुरोध लोड नहीं हो सके।', () {
+                  final id = selectedJob?['job_id']?.toString();
+                  if (id != null) setState(() => requestsFuture = _loadRequests(id));
+                });
+              }
+              final rows = s.data ?? <Map<String, dynamic>>[];
+              final pending = rows.where((r) => '${r['request_status']}' == 'pending').length;
               return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   const Expanded(child: Text('कामगार अनुरोध', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900))),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: pending.isEmpty ? const Color(0xFF64748B) : const Color(0xFF16A34A), borderRadius: BorderRadius.circular(20)), child: Text('${pending.length}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: rows.isEmpty ? const Color(0xFF64748B) : const Color(0xFF16A34A), borderRadius: BorderRadius.circular(20)),
+                    child: Text('${rows.length}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900)),
+                  ),
                 ]),
+                const SizedBox(height: 8),
+                if (rows.isNotEmpty)
+                  Text('कुल अनुरोध: ${rows.length}  •  Pending: $pending', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 10),
-                if (pending.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(22), child: Center(child: Text('इस जॉब पर अभी कोई pending कामगार अनुरोध नहीं है।', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)))))
-                else ...pending.map(_requestCard),
+                if (rows.isEmpty)
+                  const Card(child: Padding(padding: EdgeInsets.all(22), child: Center(child: Text('इस जॉब पर अभी कोई कामगार अनुरोध नहीं है।', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))))),
+                if (rows.isNotEmpty) ...rows.map(_requestCard),
               ]);
             },
           ),
@@ -274,6 +324,8 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
 
   Widget _jobSummary(FlutterFlowTheme t, Map<String, dynamic> j) {
     final photo = '${j['work_photo'] ?? ''}'.trim();
+    final audio = '${j['audio_note'] ?? ''}'.trim();
+    final description = '${j['description'] ?? ''}'.trim();
     return Card(
       color: t.secondaryBackground,
       elevation: 1,
@@ -286,28 +338,41 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
           Text('काम: ${j['profession_name'] ?? '-'}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           Text('राशि: ₹${j['amount'] ?? '-'}   •   चौपाल: ${j['location_name'] ?? '-'}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 16)),
-          if ('${j['description'] ?? ''}'.trim().isNotEmpty) ...[const SizedBox(height: 7), Text('${j['description']}', style: const TextStyle(fontSize: 15))],
-          if (photo.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            FutureBuilder<String?>(
-              future: _signedJob(photo),
-              builder: (_, s) {
-                if (!s.hasData || s.data == null) return const SizedBox(height: 130, child: Center(child: CircularProgressIndicator()));
-                return ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(s.data!, height: 180, width: double.infinity, fit: BoxFit.cover));
-              },
-            ),
-          ],
-          if ('${j['audio_note'] ?? ''}'.trim().isNotEmpty) ...[
+          if (description.isNotEmpty) ...[const SizedBox(height: 7), Text(description, style: const TextStyle(fontSize: 15))],
+          if (photo.isNotEmpty) ...[const SizedBox(height: 12), _jobPhoto(photo, height: 180)],
+          if (audio.isNotEmpty) ...[
             const SizedBox(height: 10),
-            SizedBox(width: double.infinity, height: 52, child: OutlinedButton.icon(onPressed: () => _playAudio('${j['audio_note']}'), icon: const Icon(Icons.play_arrow_outlined, size: 28), label: const Text('ऑडियो सुनें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))),
+            SizedBox(width: double.infinity, height: 52, child: OutlinedButton.icon(onPressed: () => _playAudio(audio), icon: const Icon(Icons.play_arrow_outlined, size: 28), label: const Text('ऑडियो सुनें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))),
           ],
         ]),
       ),
     );
   }
 
+  Widget _jobPhoto(String path, {required double height}) {
+    return FutureBuilder<String?>(
+      future: _signedJob(path),
+      builder: (context, s) {
+        if (s.connectionState != ConnectionState.done) return SizedBox(height: height, child: const Center(child: CircularProgressIndicator()));
+        final url = s.data;
+        if (url == null || url.isEmpty) {
+          return Container(height: height, width: double.infinity, alignment: Alignment.center, color: const Color(0xFFF1F5F9), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.image_not_supported_outlined, size: 42), SizedBox(height: 5), Text('फोटो उपलब्ध नहीं है')]));
+        }
+        return Image.network(
+          url,
+          height: height,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(height: height, width: double.infinity, alignment: Alignment.center, color: const Color(0xFFF1F5F9), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.broken_image_outlined, size: 42), SizedBox(height: 5), Text('फोटो दिखाई नहीं दे रही')])) ,
+        );
+      },
+    );
+  }
+
   Widget _requestCard(Map<String, dynamic> r) {
     final profilePhoto = '${r['worker_profile_photo'] ?? ''}'.trim();
+    final status = '${r['request_status'] ?? ''}';
+    final isPending = status == 'pending';
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
@@ -315,12 +380,11 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
       child: Padding(
         padding: const EdgeInsets.all(15),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Row(children: [
             _workerPhoto(profilePhoto),
             const SizedBox(width: 12),
             Expanded(child: Text('${r['worker_name'] ?? '-'}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
-            const SizedBox(width: 8),
-            Text('${r['request_type'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800)),
+            _statusBadge(status),
           ]),
           const SizedBox(height: 10),
           Text('मोबाइल: ${r['worker_mobile'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -328,17 +392,25 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
           Text('काम: ${r['worker_profession'] ?? '-'}   •   चौपाल: ${r['worker_location'] ?? '-'}', style: const TextStyle(fontSize: 15)),
           const SizedBox(height: 6),
           Text('कामगार का रेट: ₹${r['offered_amount'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(child: SizedBox(height: 52, child: OutlinedButton.icon(style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFDC2626), side: const BorderSide(color: Color(0xFFDC2626), width: 2)), onPressed: busy ? null : () => _reject(r), icon: const Icon(Icons.close, size: 25), label: const Text('अस्वीकार', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))))),
-            const SizedBox(width: 10),
-            Expanded(child: SizedBox(height: 52, child: FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white), onPressed: busy ? null : () => _accept(r), icon: const Icon(Icons.check, size: 25), label: const Text('स्वीकार', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))))),
-          ]),
+          if (isPending) ...[
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: SizedBox(height: 52, child: OutlinedButton.icon(style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFDC2626), side: const BorderSide(color: Color(0xFFDC2626), width: 2)), onPressed: busy ? null : () => _reject(r), icon: const Icon(Icons.close, size: 25), label: const Text('अस्वीकार', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))))),
+              const SizedBox(width: 10),
+              Expanded(child: SizedBox(height: 52, child: FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white), onPressed: busy ? null : () => _accept(r), icon: const Icon(Icons.check, size: 25), label: const Text('स्वीकार', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))))),
+            ]),
+          ],
           const SizedBox(height: 7),
           const Text('मोबाइल नंबर दिखाया गया है। मालिक अपने सामान्य फोन से कॉल करेगा।', style: TextStyle(fontSize: 12)),
         ]),
       ),
     );
+  }
+
+  Widget _statusBadge(String status) {
+    final text = status == 'pending' ? 'Pending' : status == 'accepted' ? 'स्वीकृत' : status == 'rejected' ? 'अस्वीकृत' : status;
+    final bg = status == 'pending' ? const Color(0xFFF59E0B) : status == 'accepted' ? const Color(0xFF16A34A) : status == 'rejected' ? const Color(0xFFDC2626) : const Color(0xFF64748B);
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18)), child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900)));
   }
 
   Widget _workerPhoto(String path) {
@@ -349,15 +421,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
         if (s.connectionState != ConnectionState.done) return _workerPhotoFallback(loading: true);
         final url = s.data;
         if (url == null || url.isEmpty) return _workerPhotoFallback();
-        return ClipOval(
-          child: Image.network(
-            url,
-            width: 64,
-            height: 64,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _workerPhotoFallback(),
-          ),
-        );
+        return ClipOval(child: Image.network(url, width: 64, height: 64, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _workerPhotoFallback()));
       },
     );
   }
@@ -366,9 +430,24 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
     return Container(
       width: 64,
       height: 64,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFE2E8F0)),
+      decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE2E8F0)),
       alignment: Alignment.center,
       child: loading ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.person, size: 34, color: Color(0xFF64748B)),
+    );
+  }
+
+  Widget _errorBox(String message, Future<void> Function() retry) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.error_outline, size: 46),
+          const SizedBox(height: 10),
+          Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(onPressed: retry, icon: const Icon(Icons.refresh), label: const Text('फिर से कोशिश करें')),
+        ]),
+      ),
     );
   }
 }
