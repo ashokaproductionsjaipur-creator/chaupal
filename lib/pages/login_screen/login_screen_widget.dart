@@ -5,6 +5,9 @@ import '/components/text_field/text_field_widget.dart';
 import '/backend/supabase/supabase.dart';
 import '/backend/schema/structs/chaupal_auth_user_struct.dart';
 import '/auth/custom_auth/auth_util.dart';
+import '/pages/owner_dashboard/owner_dashboard_widget.dart';
+import '/pages/worker_job_feed/worker_job_feed_widget.dart';
+import '/pages/worker_profile_status/worker_profile_status_widget.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -55,8 +58,6 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
     showSnackbar(context, 'Logging in...', loading: true, duration: 30);
 
     try {
-      // Resolve username/mobile to the internal Supabase identity.
-      // The password is deliberately never sent to this endpoint.
       final lookupResponse = await http.post(
         Uri.parse(
           'https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/chaupal-login-identity',
@@ -72,8 +73,10 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
         lookupBody = null;
       }
 
-      if (lookupResponse.statusCode < 200 || lookupResponse.statusCode >= 300 ||
-          lookupBody is! Map || lookupBody['login_email'] is! String) {
+      if (lookupResponse.statusCode < 200 ||
+          lookupResponse.statusCode >= 300 ||
+          lookupBody is! Map ||
+          lookupBody['login_email'] is! String) {
         final message = lookupBody is Map && lookupBody['message'] is String
             ? lookupBody['message'] as String
             : 'Invalid username/mobile or role.';
@@ -161,7 +164,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
         key: scaffoldKey,
         backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
         body: Padding(
-          padding: EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24.0),
           child: SingleChildScrollView(
             primary: false,
             child: Column(
@@ -201,7 +204,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                                 lineHeight: 1.5,
                               ),
                         ),
-                      ].divide(SizedBox(height: 16.0)),
+                      ].divide(const SizedBox(height: 16.0)),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.max,
@@ -248,7 +251,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                             ),
                           ),
                         ),
-                      ].divide(SizedBox(width: 16.0)),
+                      ].divide(const SizedBox(width: 16.0)),
                     ),
                     Column(
                       mainAxisSize: MainAxisSize.min,
@@ -271,7 +274,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                                 error: false,
                               ),
                             ),
-                          ].divide(SizedBox(height: 4.0)),
+                          ].divide(const SizedBox(height: 4.0)),
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -290,12 +293,13 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                                 onChange: '',
                                 onSubmit: '',
                                 variant: 'outlined',
+                                size: 'medium',
                                 error: false,
                               ),
                             ),
-                          ].divide(SizedBox(height: 4.0)),
+                          ].divide(const SizedBox(height: 4.0)),
                         ),
-                      ].divide(SizedBox(height: 16.0)),
+                      ].divide(const SizedBox(height: 16.0)),
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -332,9 +336,9 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                             ),
                           ),
                         ),
-                      ].divide(SizedBox(height: 16.0)),
+                      ].divide(const SizedBox(height: 16.0)),
                     ),
-                  ].divide(SizedBox(height: 24.0)),
+                  ].divide(const SizedBox(height: 24.0)),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.max,
@@ -343,7 +347,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                     Expanded(child: Divider(height: 16.0, thickness: 1.0, color: FlutterFlowTheme.of(context).alternate)),
                     Text('OR', style: FlutterFlowTheme.of(context).labelSmall.override(font: GoogleFonts.inter(), color: FlutterFlowTheme.of(context).onSurface, letterSpacing: 0.0, lineHeight: 1.4)),
                     Expanded(child: Divider(height: 16.0, thickness: 1.0, color: FlutterFlowTheme.of(context).alternate)),
-                  ].divide(SizedBox(width: 16.0)),
+                  ].divide(const SizedBox(width: 16.0)),
                 ),
                 Column(
                   mainAxisSize: MainAxisSize.min,
@@ -364,14 +368,14 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                         disabled: false,
                       ),
                     ),
-                  ].divide(SizedBox(height: 16.0)),
+                  ].divide(const SizedBox(height: 16.0)),
                 ),
                 Container(
                   alignment: AlignmentDirectional(0.0, 0.0),
-                  padding: EdgeInsetsDirectional.fromSTEB(0.0, 20.0, 0.0, 20.0),
+                  padding: const EdgeInsetsDirectional.fromSTEB(0.0, 20.0, 0.0, 20.0),
                   child: Text('v1.0.0 • Secure Production Environment', style: FlutterFlowTheme.of(context).labelSmall.override(font: GoogleFonts.inter(), color: FlutterFlowTheme.of(context).onSurface, letterSpacing: 0.0, lineHeight: 1.4)),
                 ),
-              ].divide(SizedBox(height: 32.0)),
+              ].divide(const SizedBox(height: 32.0)),
             ),
           ),
         ),
