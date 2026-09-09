@@ -7,8 +7,6 @@ import 'package:flutter/material.dart';
 
 /// Shared header for authenticated pages.
 /// Login and role-selection pages intentionally do not use this header.
-/// The controls use strong, distinct colors and large touch targets so the
-/// app remains easy to understand for users with limited literacy.
 class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
   const ChaupalAppHeader({
     super.key,
@@ -98,19 +96,16 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
         actions: [
           SizedBox(
             width: double.infinity,
-            height: 56,
+            height: 52,
             child: FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF15803D),
+                backgroundColor: const Color(0xFF16A34A),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text(
                 'बंद करें',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -120,7 +115,7 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(82);
+  Size get preferredSize => const Size.fromHeight(76);
 
   @override
   Widget build(BuildContext context) {
@@ -129,14 +124,14 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: theme.primaryBackground,
       foregroundColor: theme.primaryText,
       elevation: 0,
-      toolbarHeight: 82,
-      titleSpacing: 6,
-      leadingWidth: showBack ? 92 : 0,
+      toolbarHeight: 76,
+      titleSpacing: 0,
+      leadingWidth: showBack ? 84 : 0,
       leading: showBack
           ? _HeaderAction(
               icon: Icons.arrow_back_rounded,
               label: 'पीछे जाएँ',
-              backgroundColor: const Color(0xFF1565C0),
+              backgroundColor: const Color(0xFF1976D2),
               onTap: () {
                 if (context.canPop()) {
                   context.pop();
@@ -157,17 +152,17 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
         _HeaderAction(
           icon: Icons.account_circle_outlined,
           label: 'प्रोफाइल देखें',
-          backgroundColor: const Color(0xFF15803D),
+          backgroundColor: const Color(0xFF16A34A),
           onTap: () => _showProfile(context),
         ),
-        const SizedBox(width: 5),
+        const SizedBox(width: 2),
         _HeaderAction(
           icon: Icons.logout_rounded,
           label: 'लॉगआउट',
           backgroundColor: const Color(0xFFDC2626),
           onTap: () => _logout(context),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
       ],
     );
   }
@@ -193,40 +188,32 @@ class _HeaderAction extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Ink(
-          width: 86,
-          height: 72,
+        child: Container(
+          width: 78,
+          height: 68,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                blurRadius: 3,
-                offset: Offset(0, 2),
-                color: Color(0x33000000),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 29, color: Colors.white),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 30, color: Colors.white),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),
