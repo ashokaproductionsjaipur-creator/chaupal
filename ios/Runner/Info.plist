@@ -16,56 +16,32 @@
 	<string>Chaupal</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
-
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
-	<array>        <dict>
-        <key>CFBundleTypeRole</key>
-        <string>Editor</string>
-        <key>CFBundleURLName</key>
-        <string>chaupal.com</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
-        <string>chaupal</string>
-        </array>
-        </dict>
-    </array>
-    <key>FlutterDeepLinkingEnabled</key>
-    <true/>
-
-
+	<array><dict>
+		<key>CFBundleTypeRole</key><string>Editor</string>
+		<key>CFBundleURLName</key><string>chaupal.com</string>
+		<key>CFBundleURLSchemes</key><array><string>chaupal</string></array>
+	</dict></array>
+	<key>FlutterDeepLinkingEnabled</key><true/>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-
-
-
-
-
-
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
+	<key>LSRequiresIPhoneOS</key><true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Chaupal uses the camera for profile, work and worker verification photos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Chaupal uses your photo library to select profile and work photos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Chaupal uses the microphone to record the required job audio note.</string>
+	<key>UILaunchStoryboardName</key><string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key><string>Main</string>
 	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
+	<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
-
+	<array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
+	<key>UIViewControllerBasedStatusBarAppearance</key><false/>
 </dict>
 </plist>
