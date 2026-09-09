@@ -51,7 +51,7 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
   Future<void> _register() async {
     if(busy)return;
     final u=username.text.trim().toLowerCase(),m=mobile.text.trim(),p=password.text;
-    if(name.text.trim().isEmpty||!RegExp(r'^\d{10}$').hasMatch(m)||u.length<3||p.length<6||p!=confirm.text||locationId==null||profilePhoto==null||aadhaar.text.trim().length!=12||aadhaarPhoto==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Required fields सही भरें और सभी जरूरी photos चुनें.')));return;}
+    if(name.text.trim().isEmpty||!RegExp(r'^\d{10}$').hasMatch(m)||u.length<3||p.length<8||p!=confirm.text||locationId==null||profilePhoto==null||aadhaar.text.trim().length!=12||aadhaarPhoto==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Required fields सही भरें और सभी जरूरी photos चुनें. Password कम से कम 8 characters होना चाहिए.')));return;}
     if(role=='worker'&&professionId==null&&otherProfession.text.trim().isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Profession चुनें.')));return;}
     if(role=='worker'&&livePhoto==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Worker verification के लिए Live Verification Photo जरूरी है.')));return;}
     setState(()=>busy=true);
@@ -88,7 +88,7 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
     final t=FlutterFlowTheme.of(context);
     return Scaffold(backgroundColor:t.primaryBackground,appBar:AppBar(backgroundColor:t.primaryBackground,foregroundColor:t.primaryText,elevation:0,title:const Text('Create Account | अकाउंट बनाएं')),body:ListView(padding:const EdgeInsets.all(16),children:[
       Row(children:[Expanded(child:ChoiceChip(label:const Text('Owner | मालिक'),selected:role=='owner',onSelected:(_){setState(()=>role='owner');})),const SizedBox(width:10),Expanded(child:ChoiceChip(label:const Text('Worker | कामगार'),selected:role=='worker',onSelected:(_){setState(()=>role='worker');}))]),
-      const SizedBox(height:14),_field('Full Name | पूरा नाम',name,'अपना नाम'),const SizedBox(height:12),_field('Mobile Number | मोबाइल',mobile,'10 digit',keyboard:TextInputType.phone),const SizedBox(height:12),_field('Username | यूजरनेम',username,'username'),const SizedBox(height:12),_field('Password | पासवर्ड',password,'कम से कम 6 characters',obscure:true),const SizedBox(height:12),_field('Confirm Password | पुष्टि',confirm,'password again',obscure:true),const SizedBox(height:12),
+      const SizedBox(height:14),_field('Full Name | पूरा नाम',name,'अपना नाम'),const SizedBox(height:12),_field('Mobile Number | मोबाइल',mobile,'10 digit',keyboard:TextInputType.phone),const SizedBox(height:12),_field('Username | यूजरनेम',username,'username'),const SizedBox(height:12),_field('Password | पासवर्ड',password,'कम से कम 8 characters',obscure:true),const SizedBox(height:12),_field('Confirm Password | पुष्टि',confirm,'password again',obscure:true),const SizedBox(height:12),
       _locationDropdown(),
       if(role=='worker')...[const SizedBox(height:12),_professionDropdown(),const SizedBox(height:12),_field('Other Profession | अन्य',otherProfession,'Only if Other Profession')],
       const SizedBox(height:12),_field('Aadhaar Number | आधार',aadhaar,'12 digit',keyboard:TextInputType.number),const SizedBox(height:12),
