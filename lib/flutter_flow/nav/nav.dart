@@ -62,13 +62,15 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
     FFRoute(name: '_initialize', path: '/', builder: (context, _) => appStateNotifier.loggedIn ? _homeForUser(appStateNotifier) : LoginScreenWidget()),
     FFRoute(name: RoleSelectionWidget.routeName, path: RoleSelectionWidget.routePath, builder: (context, params) => RoleSelectionWidget()),
     FFRoute(name: LoginScreenWidget.routeName, path: LoginScreenWidget.routePath, builder: (context, params) => LoginScreenWidget()),
+    FFRoute(name: AdminLoginWidget.routeName, path: AdminLoginWidget.routePath, builder: (context, params) => AdminLoginWidget()),
+    FFRoute(name: AdminDashboardWidget.routeName, path: AdminDashboardWidget.routePath, requireAuth: true, adminOnly: true, builder: (context, params) => AdminDashboardWidget()),
     FFRoute(name: WorkerRegistrationWidget.routeName, path: WorkerRegistrationWidget.routePath, builder: (context, params) => WorkerRegistrationWidget()),
     FFRoute(name: OwnerDashboardWidget.routeName, path: OwnerDashboardWidget.routePath, requireAuth: true, builder: (context, params) => OwnerDashboardWidget()),
     FFRoute(name: WorkerJobFeedWidget.routeName, path: WorkerJobFeedWidget.routePath, requireAuth: true, builder: (context, params) => WorkerJobFeedWidget()),
     FFRoute(name: CreateJobPostWidget.routeName, path: CreateJobPostWidget.routePath, requireAuth: true, builder: (context, params) => CreateJobPostWidget()),
     FFRoute(name: JobRequestManagementWidget.routeName, path: JobRequestManagementWidget.routePath, requireAuth: true, builder: (context, params) => JobRequestManagementWidget()),
     FFRoute(name: WorkerProfileStatusWidget.routeName, path: WorkerProfileStatusWidget.routePath, requireAuth: true, builder: (context, params) => WorkerProfileStatusWidget()),
-    FFRoute(name: AdminVerificationPanelWidget.routeName, path: AdminVerificationPanelWidget.routePath, requireAuth: true, builder: (context, params) => AdminVerificationPanelWidget()),
+    FFRoute(name: AdminVerificationPanelWidget.routeName, path: AdminVerificationPanelWidget.routePath, requireAuth: true, adminOnly: true, builder: (context, params) => AdminVerificationPanelWidget()),
     FFRoute(name: JobHistoryArchiveWidget.routeName, path: JobHistoryArchiveWidget.routePath, requireAuth: true, builder: (context, params) => JobHistoryArchiveWidget()),
     FFRoute(name: NotificationsWidget.routeName, path: NotificationsWidget.routePath, requireAuth: true, builder: (context, params) => NotificationsWidget()),
   ].map((r) => r.toRoute(appStateNotifier)).toList(),
@@ -117,18 +119,30 @@ class FFParameters {
 }
 
 class FFRoute {
-  const FFRoute({required this.name, required this.path, required this.builder, this.requireAuth = false, this.asyncParams = const {}, this.routes = const []});
+  const FFRoute({required this.name, required this.path, required this.builder, this.requireAuth = false, this.adminOnly = false, this.asyncParams = const {}, this.routes = const []});
   final String name;
   final String path;
   final bool requireAuth;
+  final bool adminOnly;
   final Map<String, Future<dynamic> Function(String)> asyncParams;
   final Widget Function(BuildContext, FFParameters) builder;
   final List<GoRoute> routes;
   GoRoute toRoute(AppStateNotifier appStateNotifier) => GoRoute(
     name: name,
     path: path,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       if (appStateNotifier.shouldRedirect) { final redirectLocation = appStateNotifier.getRedirectLocation(); appStateNotifier.clearRedirectLocation(); return redirectLocation; }
+      if (adminOnly) {
+        if (!appStateNotifier.loggedIn) {
+          appStateNotifier.setRedirectLocationIfUnset(state.uri.toString());
+          return '/adminLogin';
+        }
+        try {
+          final allowed = await SupaFlow.client.rpc('is_admin');
+          if (allowed == true) return null;
+        } catch (_) {}
+        return '/adminLogin';
+      }
       if (requireAuth && !appStateNotifier.loggedIn) { appStateNotifier.setRedirectLocationIfUnset(state.uri.toString()); return '/loginScreen'; }
       return null;
     },
