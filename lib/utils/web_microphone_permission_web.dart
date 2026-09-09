@@ -1,49 +1,60 @@
-// Web microphone permission bridge.
-// The browser must grant microphone access before the recorder can start.
 import 'dart:html' as html;
 
 import 'package:record/record.dart';
 
-Future<bool> requestWebMicrophone() async {
+enum WebMicrophoneStatus { available, noDevice, denied, unavailable }
+
+Future<WebMicrophoneStatus> requestWebMicrophoneStatus() async {
   final recorder = AudioRecorder();
   try {
     if (await recorder.hasPermission(request: true)) {
-      return true;
+      return WebMicrophoneStatus.available;
     }
   } catch (_) {
-    // Continue with the browser API below.
+    // Continue with the browser API so we can distinguish a missing device.
   } finally {
     await recorder.dispose();
   }
 
-  final devices = html.window.navigator.mediaDevices;
-  if (devices == null) {
-    throw Exception(
-      'MIC_ERROR: browser microphone API उपलब्ध नहीं है. '
-      'secure=${html.window.isSecureContext}, origin=${html.window.location.origin}',
-    );
+  try {
+    final devices = html.window.navigator.mediaDevices;
+    if (devices != null) {
+      final stream = await devices.getUserMedia(<String, dynamic>{
+        'audio': true,
+        'video': false,
+      });
+      for (final track in stream.getAudioTracks()) {
+        track.stop();
+      }
+      return WebMicrophoneStatus.available;
+    }
+  } catch (e) {
+    final name = e is html.DomException ? e.name : e.toString();
+    if (name == 'NotFoundError' || name.contains('NotFoundError')) {
+      return WebMicrophoneStatus.noDevice;
+    }
+    if (name == 'NotAllowedError' || name.contains('NotAllowedError')) {
+      return WebMicrophoneStatus.denied;
+    }
   }
 
   try {
-    final stream = await devices.getUserMedia(<String, dynamic>{
-      'audio': true,
-      'video': false,
-    });
+    final stream = await html.window.navigator.getUserMedia(audio: true);
     for (final track in stream.getAudioTracks()) {
       track.stop();
     }
-    return true;
+    return WebMicrophoneStatus.available;
   } catch (e) {
-    String name = 'UnknownError';
-    String message = e.toString();
-    if (e is html.DomException) {
-      name = e.name;
-      message = e.message ?? e.toString();
+    final name = e is html.DomException ? e.name : e.toString();
+    if (name == 'NotFoundError' || name.contains('NotFoundError')) {
+      return WebMicrophoneStatus.noDevice;
     }
-    throw Exception(
-      'MIC_ERROR: $name - $message | '
-      'secure=${html.window.isSecureContext} | '
-      'origin=${html.window.location.origin}',
-    );
+    if (name == 'NotAllowedError' || name.contains('NotAllowedError')) {
+      return WebMicrophoneStatus.denied;
+    }
+    return WebMicrophoneStatus.unavailable;
   }
 }
+
+Future<bool> requestWebMicrophone() async =>
+    (await requestWebMicrophoneStatus()) == WebMicrophoneStatus.available;
