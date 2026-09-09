@@ -56,7 +56,7 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
     if(role=='worker'&&livePhoto==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Worker verification के लिए Live Verification Photo जरूरी है.')));return;}
     setState(()=>busy=true);
     try {
-      final response=await http.post(Uri.parse('https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/chaupal-register'),headers:const {'Content-Type':'application/json'},body:jsonEncode({'username':u,'password':p,'role':role,'full_name':name.text.trim(),'mobile_number':m}));
+      final response=await http.post(Uri.parse('https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/chaupal-register-v2'),headers:const {'Content-Type':'application/json'},body:jsonEncode({'username':u,'password':p,'role':role,'full_name':name.text.trim(),'mobile_number':m}));
       dynamic body;try{body=jsonDecode(response.body);}catch(_){body=null;}
       if(response.statusCode<200||response.statusCode>=300||body is! Map||body['ok']!=true){
         final code=body is Map&&body['code'] is String?body['code']: 'http_${response.statusCode}';
