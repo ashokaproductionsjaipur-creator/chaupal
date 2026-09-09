@@ -35,65 +35,120 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
   }
 
   Future<void> _login() async {
-    final u = username.text.trim();
+    final u = username.text.trim().toLowerCase();
     final p = password.text;
+
     if (u.isEmpty || p.isEmpty) {
-      showSnackbar(context, 'Username/Mobile and Password are required.');
+      showSnackbar(context, 'Username/Mobile और Password भरें.');
       return;
     }
     if (busy) return;
+
+    FocusScope.of(context).unfocus();
     setState(() => busy = true);
+
     try {
+      // IMPORTANT: use the same working username-auth function used by
+      // registration. The old chaupal-login-v3 endpoint is not present in
+      // the project backend and caused existing users to fail at login.
       final response = await http.post(
-        Uri.parse('https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/chaupal-login-v3'),
+        Uri.parse('https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/username-auth'),
         headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({'username': u, 'password': p, 'role': selectedRole}),
+        body: jsonEncode({
+          'action': 'login',
+          'username': u,
+          'password': p,
+          'role': selectedRole,
+        }),
       );
+
       dynamic body;
-      try { body = jsonDecode(response.body); } catch (_) { body = null; }
+      try {
+        body = jsonDecode(response.body);
+      } catch (_) {
+        body = null;
+      }
+
       if (response.statusCode < 200 || response.statusCode >= 300 || body is! Map || body['ok'] != true) {
-        final message = body is Map && body['message'] is String ? body['message'] as String : 'Invalid username/mobile or password.';
-        showSnackbar(context, message);
+        final code = body is Map && body['code'] is String ? body['code'] as String : '';
+        final message = body is Map && body['message'] is String
+            ? body['message'] as String
+            : 'Username/Mobile या Password गलत है.';
+        if (mounted) {
+          showSnackbar(context, code.isEmpty ? message : '$message ($code)');
+        }
         return;
       }
+
       final accessToken = body['access_token']?.toString();
       final refreshToken = body['refresh_token']?.toString();
       final userId = body['user_id']?.toString();
-      if (accessToken == null || refreshToken == null || userId == null || body['user'] is! Map) {
-        showSnackbar(context, 'Login session could not be created. Please try again.');
-        return;
+
+      if (accessToken == null || accessToken.isEmpty ||
+          refreshToken == null || refreshToken.isEmpty ||
+          userId == null || userId.isEmpty) {
+        throw Exception('Login response में session tokens नहीं मिले.');
       }
-      try { await SupaFlow.client.auth.setSession(refreshToken); } catch (_) {
-        await SupaFlow.client.auth.signOut();
-        showSnackbar(context, 'Login session could not be established. Please try again.');
-        return;
+
+      // Establish the Supabase session first so the normal authenticated RLS
+      // policies work for the profile query and the rest of the app.
+      final sessionResult = await SupaFlow.client.auth.setSession(refreshToken);
+      if (sessionResult.user == null) {
+        throw Exception('Supabase session establish नहीं हो सका.');
       }
-      final profile = await SupaFlow.client.from('users').select('id, username, mobile_number, full_name, role, account_status').eq('id', userId).maybeSingle();
+
+      final profile = await SupaFlow.client
+          .from('users')
+          .select('id, username, mobile_number, full_name, role, account_status, chaupal_location_id, profile_photo')
+          .eq('id', userId)
+          .maybeSingle();
+
       if (profile == null) {
         await SupaFlow.client.auth.signOut();
-        showSnackbar(context, 'Account profile not found. Please contact support.');
-        return;
+        throw Exception('Account profile नहीं मिला.');
       }
+
       final actualRole = (profile['role'] ?? '').toString().toLowerCase();
       final accountStatus = (profile['account_status'] ?? 'active').toString().toLowerCase();
+
       if (actualRole != selectedRole) {
         await SupaFlow.client.auth.signOut();
-        showSnackbar(context, 'Selected role does not match this account.');
+        showSnackbar(context, 'यह account ${actualRole == 'worker' ? 'Worker' : 'Owner'} है. सही role select करें.');
         return;
       }
+
       if (accountStatus == 'blocked' || accountStatus == 'rejected') {
         await SupaFlow.client.auth.signOut();
-        showSnackbar(context, 'This account is not active. Please contact support.');
+        showSnackbar(context, 'यह account अभी active नहीं है.');
         return;
       }
-      final expiresAt = body['expires_at'] is num ? DateTime.fromMillisecondsSinceEpoch((body['expires_at'] as num).toInt() * 1000) : null;
-      await authManager.signIn(authenticationToken: accessToken, refreshToken: refreshToken, tokenExpiration: expiresAt, authUid: userId, userData: ChaupalAuthUserStruct.fromMap(profile));
+
+      final expiresAt = body['expires_at'] is num
+          ? DateTime.fromMillisecondsSinceEpoch((body['expires_at'] as num).toInt() * 1000)
+          : DateTime.now().add(const Duration(hours: 1));
+
+      await authManager.signIn(
+        authenticationToken: accessToken,
+        refreshToken: refreshToken,
+        tokenExpiration: expiresAt,
+        authUid: userId,
+        userData: ChaupalAuthUserStruct.fromMap(Map<String, dynamic>.from(profile)),
+      );
+
       if (!mounted) return;
-      if (selectedRole == 'owner') context.goNamed(OwnerDashboardWidget.routeName);
-      else if (accountStatus == 'active') context.goNamed(WorkerJobFeedWidget.routeName);
-      else context.goNamed(WorkerProfileStatusWidget.routeName);
-    } catch (_) {
-      showSnackbar(context, 'Login failed. Please try again.');
+
+      if (actualRole == 'owner') {
+        context.goNamed(OwnerDashboardWidget.routeName);
+      } else if (accountStatus == 'active') {
+        context.goNamed(WorkerJobFeedWidget.routeName);
+      } else {
+        context.goNamed(WorkerProfileStatusWidget.routeName);
+      }
+    } catch (e) {
+      if (mounted) {
+        final message = e.toString().replaceFirst('Exception: ', '');
+        showSnackbar(context, 'Login failed: $message');
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -138,6 +193,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                   TextField(
                     controller: password,
                     obscureText: obscure,
+                    onSubmitted: (_) => _login(),
                     decoration: InputDecoration(labelText: 'Password | पासवर्ड', hintText: 'अपना password डालें', prefixIcon: const Icon(Icons.lock_outline_rounded), suffixIcon: IconButton(onPressed: () => setState(() => obscure = !obscure), icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined)), border: const OutlineInputBorder()),
                   ),
                   const SizedBox(height: 20),
@@ -185,5 +241,5 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
     );
   }
 
-  Widget _input(FlutterFlowTheme t, String label, String hint, TextEditingController c, IconData icon) => TextField(controller: c, decoration: InputDecoration(labelText: label, hintText: hint, prefixIcon: Icon(icon), border: const OutlineInputBorder()));
+  Widget _input(FlutterFlowTheme t, String label, String hint, TextEditingController c, IconData icon) => TextField(controller: c, textInputAction: TextInputAction.next, decoration: InputDecoration(labelText: label, hintText: hint, prefixIcon: Icon(icon), border: const OutlineInputBorder()));
 }
