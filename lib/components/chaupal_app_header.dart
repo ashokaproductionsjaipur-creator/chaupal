@@ -72,38 +72,38 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('प्रोफाइल देखें'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 42,
-              backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
-              child: photoUrl.isEmpty ? const Icon(Icons.person, size: 42) : null,
-            ),
-            const SizedBox(height: 16),
-            _ProfileDetail(
-              label: 'नाम',
-              value: profile['full_name']?.toString(),
-            ),
-            _ProfileDetail(
-              label: 'उपयोगकर्ता नाम',
-              value: profile['username']?.toString(),
-            ),
-            _ProfileDetail(
-              label: 'मोबाइल नंबर',
-              value: profile['mobile_number']?.toString(),
-            ),
-            _ProfileDetail(
-              label: 'स्थान',
-              value: profile['location_name']?.toString(),
-            ),
-          ],
+        title: const Text(
+          'प्रोफाइल देखें',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 52,
+                backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+                child: photoUrl.isEmpty ? const Icon(Icons.person, size: 52) : null,
+              ),
+              const SizedBox(height: 20),
+              _ProfileDetail(label: 'नाम', value: profile['full_name']?.toString()),
+              _ProfileDetail(label: 'उपयोगकर्ता नाम', value: profile['username']?.toString()),
+              _ProfileDetail(label: 'मोबाइल नंबर', value: profile['mobile_number']?.toString()),
+              _ProfileDetail(label: 'स्थान', value: profile['location_name']?.toString()),
+            ],
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('बंद करें'),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'बंद करें',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
         ],
       ),
@@ -111,7 +111,7 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(62);
+  Size get preferredSize => const Size.fromHeight(76);
 
   @override
   Widget build(BuildContext context) {
@@ -120,9 +120,9 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: theme.primaryBackground,
       foregroundColor: theme.primaryText,
       elevation: 0,
-      toolbarHeight: 62,
+      toolbarHeight: 76,
       titleSpacing: 0,
-      leadingWidth: showBack ? 68 : 0,
+      leadingWidth: showBack ? 84 : 0,
       leading: showBack
           ? _HeaderAction(
               icon: Icons.arrow_back_rounded,
@@ -139,9 +139,8 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
-          fontSize: 19,
+          fontSize: 20,
           fontWeight: FontWeight.w900,
-          letterSpacing: .4,
         ),
       ),
       actions: [
@@ -150,13 +149,13 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
           label: 'प्रोफाइल देखें',
           onTap: () => _showProfile(context),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 2),
         _HeaderAction(
           icon: Icons.logout_rounded,
           label: 'लॉगआउट',
           onTap: () => _logout(context),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
       ],
     );
   }
@@ -177,25 +176,29 @@ class _HeaderAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 21),
-            const SizedBox(height: 1),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.w700,
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 78,
+        height: 72,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 5),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 28),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -211,20 +214,21 @@ class _ProfileDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 125,
             child: Text(
               '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
             ),
           ),
           Expanded(
             child: Text(
               value?.isNotEmpty == true ? value! : 'उपलब्ध नहीं',
+              style: const TextStyle(fontSize: 15),
             ),
           ),
         ],
