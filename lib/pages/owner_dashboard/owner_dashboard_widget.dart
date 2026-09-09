@@ -58,14 +58,7 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                     child:ListTile(
                       title:Text('${j['title']}',style:const TextStyle(fontWeight:FontWeight.w700)),
                       subtitle:Text('₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}\n${j['profession_name']} • ${j['location_name']}'),
-                      trailing:SizedBox(
-                        width:90,
-                        child:Column(
-                          mainAxisAlignment:MainAxisAlignment.center,
-                          crossAxisAlignment:CrossAxisAlignment.end,
-                          children:[Text('${j['status']}'),Text('${j['pending_requests']} requests')],
-                        ),
-                      ),
+                      trailing:SizedBox(width:90,child:Column(mainAxisAlignment:MainAxisAlignment.center,crossAxisAlignment:CrossAxisAlignment.end,children:[Text('${j['status']}'),Text('${j['pending_requests']} requests')])),
                       onTap:()=>context.goNamed(JobRequestManagementWidget.routeName),
                     ),
                   );
@@ -90,7 +83,7 @@ class _ProfileAvatar extends StatelessWidget {
       future:SupaFlow.client.storage.from('profile-media').download(path!),
       builder:(context,snapshot){
         if(snapshot.connectionState==ConnectionState.done&&snapshot.hasData)return CircleAvatar(radius:radius,backgroundImage:MemoryImage(snapshot.data!));
-        return CircleAvatar(radius:radius,child:snapshot.hasError?const Icon(Icons.person,size:32):const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2));
+        return CircleAvatar(radius:radius,child:snapshot.hasError?const Icon(Icons.person,size:32):const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2)));
       },
     );
   }
