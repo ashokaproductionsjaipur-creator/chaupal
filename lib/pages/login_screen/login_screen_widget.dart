@@ -62,31 +62,27 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
         _message(message);
         return;
       }
+
       final accessToken = body['access_token']?.toString();
       final refreshToken = body['refresh_token']?.toString();
       final userId = body['user_id']?.toString();
-      if (accessToken == null || accessToken.isEmpty || refreshToken == null || refreshToken.isEmpty || userId == null || userId.isEmpty) {
-        _message('Login session नहीं बन सकी. Please try again.');
+      final rawUser = body['user'];
+      if (accessToken == null || accessToken.isEmpty || refreshToken == null || refreshToken.isEmpty || userId == null || userId.isEmpty || rawUser is! Map) {
+        _message('Login session में आवश्यक account information नहीं मिली.');
         return;
       }
 
+      // Establish the real Supabase session. The login Edge Function already
+      // authenticated the password and returned the trusted user profile, so
+      // do not perform a second public.users query here. This avoids making
+      // successful login depend on client-side RLS/profile-read timing.
       final sessionResult = await SupaFlow.client.auth.setSession(refreshToken);
-      if (sessionResult.user == null) {
-        _message('Supabase login session नहीं बन सकी.');
+      if (sessionResult.user == null || sessionResult.user!.id != userId) {
+        _message('Supabase login session verify नहीं हो सकी.');
         return;
       }
 
-      final profile = await SupaFlow.client
-          .from('users')
-          .select('id, username, mobile_number, full_name, role, account_status, chaupal_location_id, profile_photo')
-          .eq('id', userId)
-          .maybeSingle();
-      if (profile == null) {
-        await SupaFlow.client.auth.signOut();
-        _message('Account profile नहीं मिला.');
-        return;
-      }
-
+      final profile = Map<String, dynamic>.from(rawUser);
       final actualRole = (profile['role'] ?? '').toString().toLowerCase();
       final accountStatus = (profile['account_status'] ?? 'active').toString().toLowerCase();
       if (actualRole != selectedRole) {
@@ -108,7 +104,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
         refreshToken: refreshToken,
         tokenExpiration: expiresAt,
         authUid: userId,
-        userData: ChaupalAuthUserStruct.fromMap(Map<String, dynamic>.from(profile)),
+        userData: ChaupalAuthUserStruct.fromMap(profile),
       );
       if (!mounted) return;
       if (actualRole == 'owner') {
@@ -121,7 +117,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
     } catch (e) {
       final raw = e.toString();
       if (raw.contains('42501') || raw.contains('permission denied')) {
-        _message('Login हुआ, लेकिन profile access में permission issue है. RLS fix लागू किया गया है—फिर से Login दबाएँ.');
+        _message('Profile permission issue मिला. कृपया फिर से Login करें.');
       } else {
         _message('Login failed. कृपया दोबारा कोशिश करें.');
       }
