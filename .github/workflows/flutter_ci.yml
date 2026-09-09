@@ -15,12 +15,13 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze --no-fatal-warnings --no-fatal-infos
       - run: flutter test
-      - name: Diagnose Android v1 embedding references
+      - name: Normalize Android v2 embedding
         run: |
-          echo '--- App Android source ---'
-          grep -RInE 'io\.flutter\.app|PluginRegistry\.Registrar|registerWith\(' android/app/src android 2>/dev/null || true
-          echo '--- Plugin Android sources ---'
-          grep -RInE 'io\.flutter\.app|PluginRegistry\.Registrar|registerWith\(' "$PUB_CACHE/hosted/pub.dev"/*/android 2>/dev/null || true
+          set -eux
+          rm -rf android/app/src/main/java/io/flutter/plugins
+          rm -rf android/app/src/main/java/io/flutter/app
+          grep -RInE 'io\.flutter\.app|PluginRegistry\.Registrar' android/app/src android 2>/dev/null || true
+          grep -RIn 'flutterEmbedding' android/app/src/main/AndroidManifest.xml
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
