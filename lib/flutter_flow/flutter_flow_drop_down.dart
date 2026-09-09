@@ -196,7 +196,7 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
 
   Widget _buildLegacyDropdown() {
     return DropdownButtonFormField<T>(
-      initialValue: currentValue,
+      value: currentValue,
       hint: _createHintText(),
       items: _createMenuItems(),
       elevation: widget.elevation.toInt(),
@@ -243,7 +243,6 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
         (item) => DropdownMenuItem<T>(
           key: widget.optionsHasValueKeys ? _getItemKey(item) : null,
           value: item,
-          // Disable default onTap to avoid closing menu when selecting an item
           enabled: false,
           child: StatefulBuilder(
             builder: (context, menuSetState) {
@@ -256,9 +255,7 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
                         ? multiSelectController.value!.remove(item)
                         : multiSelectController.value!.add(item);
                     multiSelectController.update();
-                    // This rebuilds the StatefulWidget to update the button's text.
                     setState(() {});
-                    // This rebuilds the dropdownMenu Widget to update the check mark.
                     menuSetState(() {});
                   },
                   child: Container(
@@ -378,7 +375,6 @@ class _FlutterFlowDropDownState<T> extends State<FlutterFlowDropDown<T>> {
               },
             )
           : null,
-      // This is to clear the search value when you close the menu
       onMenuStateChange: (isOpen) {
         if (!isOpen) {
           if (widget.isSearchable) {
