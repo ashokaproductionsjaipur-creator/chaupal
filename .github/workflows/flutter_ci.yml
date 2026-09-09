@@ -11,17 +11,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.28.9'
           channel: stable
       - run: flutter pub get
       - run: flutter analyze --no-fatal-warnings --no-fatal-infos
       - run: flutter test
-      - name: Normalize Android v2 embedding
-        run: |
-          set -eux
-          rm -rf android/app/src/main/java/io/flutter/plugins
-          rm -rf android/app/src/main/java/io/flutter/app
-          grep -RInE 'io\.flutter\.app|PluginRegistry\.Registrar' android/app/src android 2>/dev/null || true
-          grep -RIn 'flutterEmbedding' android/app/src/main/AndroidManifest.xml
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
