@@ -1,6 +1,7 @@
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/components/chaupal_app_header.dart';
 import 'package:flutter/material.dart';
 
 class NotificationsWidget extends StatefulWidget {
@@ -42,19 +43,14 @@ class _NotificationsWidgetState extends State<NotificationsWidget> {
     final t = FlutterFlowTheme.of(context);
     return Scaffold(
       backgroundColor: t.primaryBackground,
-      appBar: AppBar(
-        backgroundColor: t.primaryBackground,
-        foregroundColor: t.primaryText,
-        elevation: 0,
-        title: const Text('Notifications | सूचनाएँ'),
-      ),
+      appBar: const ChaupalAppHeader(title: 'सूचनाएँ'),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: future,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return const Center(child: Text('Notifications load नहीं हो सकीं.'));
+          if (snapshot.hasError) return const Center(child: Text('सूचनाएँ लोड नहीं हो सकीं।'));
           final rows = snapshot.data ?? [];
-          if (rows.isEmpty) return const Center(child: Text('अभी कोई notification नहीं है.'));
+          if (rows.isEmpty) return const Center(child: Text('अभी कोई सूचना नहीं है।'));
           return RefreshIndicator(
             onRefresh: () async {
               setState(() => future = _load());
@@ -63,21 +59,20 @@ class _NotificationsWidgetState extends State<NotificationsWidget> {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: rows.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final n = rows[index];
                 final unread = n['read_at'] == null;
                 return Card(
                   color: t.secondaryBackground,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: t.alternate),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: t.alternate)),
                   child: ListTile(
-                    leading: Icon(unread ? Icons.notifications_active_outlined : Icons.notifications_none_outlined),
-                    title: Text('${n['title']}', style: TextStyle(fontWeight: unread ? FontWeight.w800 : FontWeight.w500)),
-                    subtitle: Text('${n['message']}'),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    minVerticalPadding: 10,
+                    leading: Icon(unread ? Icons.notifications_active_outlined : Icons.notifications_none_outlined, size: 32),
+                    title: Text('${n['title']}', style: TextStyle(fontSize: 17, fontWeight: unread ? FontWeight.w800 : FontWeight.w600)),
+                    subtitle: Padding(padding: const EdgeInsets.only(top: 6), child: Text('${n['message']}', style: const TextStyle(fontSize: 15))),
                     onTap: unread ? () => _markRead(n['id'].toString()) : null,
                   ),
                 );
