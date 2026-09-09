@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/components/chaupal_app_header.dart';
 import '/index.dart';
 import 'package:flutter/material.dart';
 
@@ -33,12 +34,7 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
     final t = FlutterFlowTheme.of(context);
     return Scaffold(
       backgroundColor: t.primaryBackground,
-      appBar: AppBar(
-        backgroundColor: t.primaryBackground,
-        foregroundColor: t.primaryText,
-        elevation: 0,
-        title: const Text('चौपाल | CHAUPAL'),
-      ),
+      appBar: const ChaupalAppHeader(title: 'CHAUPAL'),
       body: FutureBuilder<Map<String, dynamic>>(
         future: future,
         builder: (context, snapshot) {
@@ -80,10 +76,7 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        _ProfileAvatar(
-                          path: profile['profile_photo']?.toString(),
-                          radius: 32,
-                        ),
+                        _ProfileAvatar(path: profile['profile_photo']?.toString(), radius: 32),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -91,15 +84,10 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                             children: [
                               Text(
                                 'नमस्ते, ${profile['full_name'] ?? 'Owner'}',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                '${profile['mobile_number'] ?? ''}  •  चौपाल ${profile['chaupal_location_id'] ?? ''}',
-                              ),
+                              Text('${profile['mobile_number'] ?? ''}  •  चौपाल ${profile['chaupal_location_id'] ?? ''}'),
                             ],
                           ),
                         ),
@@ -129,9 +117,7 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        Icon(
-                          canPost ? Icons.schedule_outlined : Icons.lock_outline,
-                        ),
+                        Icon(canPost ? Icons.schedule_outlined : Icons.lock_outline),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
@@ -148,18 +134,13 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                 SizedBox(
                   height: 52,
                   child: FilledButton.icon(
-                    onPressed: canPost
-                        ? () => context.goNamed(CreateJobPostWidget.routeName)
-                        : null,
+                    onPressed: canPost ? () => context.goNamed(CreateJobPostWidget.routeName) : null,
                     icon: const Icon(Icons.add),
                     label: const Text('Create Job | जॉब पोस्ट करो'),
                   ),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'My Jobs | मेरी Jobs',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
+                const Text('My Jobs | मेरी Jobs', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
                 if (jobs.isEmpty)
                   const Padding(
@@ -176,28 +157,17 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                       side: BorderSide(color: t.alternate),
                     ),
                     child: ListTile(
-                      title: Text(
-                        '${j['title']}',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      subtitle: Text(
-                        '₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}\n'
-                        '${j['profession_name']} • ${j['location_name']}',
-                      ),
+                      title: Text('${j['title']}', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: Text('₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}\n${j['profession_name']} • ${j['location_name']}'),
                       trailing: SizedBox(
                         width: 90,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text('${j['status']}'),
-                            Text('${j['pending_requests']} requests'),
-                          ],
+                          children: [Text('${j['status']}'), Text('${j['pending_requests']} requests')],
                         ),
                       ),
-                      onTap: () => context.goNamed(
-                        JobRequestManagementWidget.routeName,
-                      ),
+                      onTap: () => context.goNamed(JobRequestManagementWidget.routeName),
                     ),
                   );
                 }).toList(),
@@ -239,16 +209,9 @@ class _ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (path == null || path!.isEmpty) {
-      return CircleAvatar(
-        radius: radius,
-        child: const Icon(Icons.person, size: 32),
-      );
+      return CircleAvatar(radius: radius, child: const Icon(Icons.person, size: 32));
     }
-
     final url = SupaFlow.client.storage.from('profile-media').getPublicUrl(path!);
-    return CircleAvatar(
-      radius: radius,
-      backgroundImage: NetworkImage(url),
-    );
+    return CircleAvatar(radius: radius, backgroundImage: NetworkImage(url));
   }
 }
