@@ -1,26 +1,33 @@
-// Web-only bridge for requesting microphone access directly from the browser.
-// The permission request is made from the user's microphone-button tap.
+// Web microphone permission bridge.
+// Prefer the same permission path used by the `record` package, then fall
+// back to the browser MediaDevices API if the package cannot request it.
 import 'dart:html' as html;
 
+import 'package:record/record.dart';
+
 Future<bool> requestWebMicrophone() async {
-  // First use the modern MediaDevices API.
+  final recorder = AudioRecorder();
   try {
-    final devices = html.window.navigator.mediaDevices;
-    if (devices != null) {
-      final stream = await devices.getUserMedia({'audio': true});
-      for (final track in stream.getAudioTracks()) {
-        track.stop();
-      }
-      return true;
-    }
+    final allowedByRecorder = await recorder.hasPermission(request: true);
+    if (allowedByRecorder) return true;
   } catch (_) {
-    // Fall through to the browser's legacy getUserMedia bridge.
+    // Try the browser API below.
+  } finally {
+    recorder.dispose();
   }
 
-  // Compatibility fallback for Chromium environments where the modern
-  // navigator.mediaDevices bridge is unavailable or blocked by the wrapper.
   try {
-    final stream = await html.window.navigator.getUserMedia(audio: true);
+    final devices = html.window.navigator.mediaDevices;
+    if (devices == null) return false;
+
+    final stream = await devices.getUserMedia(<String, dynamic>{
+      'audio': <String, dynamic>{
+        'echoCancellation': true,
+        'noiseSuppression': true,
+        'autoGainControl': true,
+      },
+    });
+
     for (final track in stream.getAudioTracks()) {
       track.stop();
     }
