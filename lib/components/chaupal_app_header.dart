@@ -31,13 +31,21 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
       if (role == 'worker') {
         final result = await SupaFlow.client.rpc('get_my_worker_status');
         final data = Map<String, dynamic>.from(result as Map);
-        return Map<String, dynamic>.from((data['user'] as Map?) ?? {});
+        final user = Map<String, dynamic>.from((data['user'] as Map?) ?? {});
+        final location = Map<String, dynamic>.from((data['location'] as Map?) ?? {});
+        user['location_name'] = location['display_name']?.toString() ?? '';
+        return user;
       }
 
       if (role == 'owner') {
         final result = await SupaFlow.client.rpc('get_owner_dashboard');
         final data = Map<String, dynamic>.from(result as Map);
-        return Map<String, dynamic>.from((data['profile'] as Map?) ?? {});
+        final profile = Map<String, dynamic>.from((data['profile'] as Map?) ?? {});
+        final locationId = profile['chaupal_location_id']?.toString() ?? '';
+        profile['location_name'] = locationId.isNotEmpty
+            ? 'चौपाल नंबर $locationId'
+            : '';
+        return profile;
       }
     } catch (_) {
       // Keep the profile dialog usable even if the profile RPC is unavailable.
@@ -48,6 +56,7 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
       'username': currentUserData?.username ?? '',
       'mobile_number': currentUserData?.mobileNumber ?? '',
       'profile_photo': '',
+      'location_name': '',
     };
   }
 
@@ -63,7 +72,7 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Profile | प्रोफाइल'),
+        title: const Text('प्रोफाइल देखें'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -73,21 +82,28 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
               child: photoUrl.isEmpty ? const Icon(Icons.person, size: 42) : null,
             ),
             const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '${profile['full_name'] ?? ''}\n'
-                '${profile['username'] ?? currentUserData?.username ?? ''}\n'
-                '${profile['mobile_number'] ?? currentUserData?.mobileNumber ?? ''}',
-                style: const TextStyle(fontSize: 16, height: 1.5),
-              ),
+            _ProfileDetail(
+              label: 'नाम',
+              value: profile['full_name']?.toString(),
+            ),
+            _ProfileDetail(
+              label: 'उपयोगकर्ता नाम',
+              value: profile['username']?.toString(),
+            ),
+            _ProfileDetail(
+              label: 'मोबाइल नंबर',
+              value: profile['mobile_number']?.toString(),
+            ),
+            _ProfileDetail(
+              label: 'स्थान',
+              value: profile['location_name']?.toString(),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close | बंद करें'),
+            child: const Text('बंद करें'),
           ),
         ],
       ),
@@ -95,7 +111,7 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(62);
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +120,14 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: theme.primaryBackground,
       foregroundColor: theme.primaryText,
       elevation: 0,
+      toolbarHeight: 62,
       titleSpacing: 0,
+      leadingWidth: showBack ? 68 : 0,
       leading: showBack
-          ? IconButton(
-              tooltip: 'Back | पीछे',
-              icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: () {
+          ? _HeaderAction(
+              icon: Icons.arrow_back_rounded,
+              label: 'पीछे जाएँ',
+              onTap: () {
                 if (context.canPop()) {
                   context.pop();
                 }
@@ -118,6 +136,8 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
           : null,
       title: Text(
         title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           fontSize: 19,
           fontWeight: FontWeight.w900,
@@ -125,18 +145,90 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       actions: [
-        IconButton(
-          tooltip: 'Profile | प्रोफाइल',
-          icon: const Icon(Icons.account_circle_outlined),
-          onPressed: () => _showProfile(context),
+        _HeaderAction(
+          icon: Icons.account_circle_outlined,
+          label: 'प्रोफाइल देखें',
+          onTap: () => _showProfile(context),
         ),
-        IconButton(
-          tooltip: 'Logout | लॉगआउट',
-          icon: const Icon(Icons.logout_rounded),
-          onPressed: () => _logout(context),
+        const SizedBox(width: 4),
+        _HeaderAction(
+          icon: Icons.logout_rounded,
+          label: 'लॉगआउट',
+          onTap: () => _logout(context),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
       ],
+    );
+  }
+}
+
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 21),
+            const SizedBox(height: 1),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileDetail extends StatelessWidget {
+  const _ProfileDetail({required this.label, this.value});
+
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value?.isNotEmpty == true ? value! : 'उपलब्ध नहीं',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
