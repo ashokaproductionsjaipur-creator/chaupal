@@ -37,6 +37,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
   final player = AudioPlayer();
 
   List<Map<String, dynamic>> professions = [];
+  List<Map<String, dynamic>> locations = [];
   int? professionId;
   int? locationId;
   DateTime? jobDate;
@@ -48,6 +49,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
   bool recording = false;
   bool saving = false;
   bool loadingProfessions = true;
+  bool loadingLocations = true;
   bool audioUnavailable = false;
 
   @override
@@ -68,7 +70,12 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
   }
 
   Future<void> _loadMasters() async {
-    if (mounted) setState(() => loadingProfessions = true);
+    if (mounted) {
+      setState(() {
+        loadingProfessions = true;
+        loadingLocations = true;
+      });
+    }
     try {
       final rows = await SupaFlow.client
           .from('professions')
@@ -92,21 +99,30 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
         );
       }
     }
-    await _loadLocation();
-  }
 
-  Future<void> _loadLocation() async {
     try {
-      final user = await SupaFlow.client
-          .from('users')
-          .select('chaupal_location_id')
-          .eq('id', currentUserUid)
-          .maybeSingle();
-      if (mounted && user != null) {
-        final value = user['chaupal_location_id'];
-        setState(() => locationId = value is num ? value.toInt() : null);
+      final rows = await SupaFlow.client
+          .from('chaupal_locations')
+          .select('id,display_name')
+          .eq('active', true)
+          .order('id', ascending: true);
+      final loaded = (rows as List)
+          .map((row) => Map<String, dynamic>.from(row as Map))
+          .toList();
+      if (mounted) {
+        setState(() {
+          locations = loaded;
+          loadingLocations = false;
+        });
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        setState(() => loadingLocations = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('चौपाल की सूची लोड नहीं हो सकी: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _pickImage() async {
@@ -292,16 +308,15 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
   Future<void> _submit() async {
     if (saving) return;
 
-    if (locationId == null) await _loadLocation();
     final missing = <String>[];
     if (title.text.trim().isEmpty) missing.add('जॉब का नाम');
     if (professionId == null) missing.add('काम का प्रकार');
     if (workImage == null) missing.add('काम की फोटो');
     if (!audioUnavailable && audioPath == null) missing.add('ऑडियो रिकॉर्डिंग');
     if (amount.text.trim().isEmpty) missing.add('राशि');
+    if (locationId == null) missing.add('चौपाल स्थान');
     if (jobDate == null) missing.add('काम की तारीख');
     if (startTime == null) missing.add('काम शुरू होने का समय');
-    if (locationId == null) missing.add('चौपाल स्थान');
 
     if (missing.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -480,10 +495,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
                             child: OutlinedButton.icon(
                               onPressed: _playRecording,
                               icon: const Icon(Icons.play_arrow_outlined, size: 30),
-                              label: const Text(
-                                'ऑडियो सुनें',
-                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                              ),
+                              label: const Text('ऑडियो सुनें', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                             ),
                           ),
                         ),
@@ -494,10 +506,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
                             child: OutlinedButton.icon(
                               onPressed: _startRecording,
                               icon: const Icon(Icons.refresh_outlined, size: 28),
-                              label: const Text(
-                                'दोबारा बोलें',
-                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                              ),
+                              label: const Text('दोबारा बोलें', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                             ),
                           ),
                         ),
@@ -521,13 +530,33 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
             decoration: InputDecoration(labelText: 'राशि', hintText: 'जैसे 10000', prefixText: '₹ ', prefixStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800), labelStyle: const TextStyle(fontSize: 17), hintStyle: const TextStyle(fontSize: 17), filled: true, fillColor: t.secondaryBackground, border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: t.alternate, width: 1.5)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: t.alternate, width: 1.5)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2))),
           ),
           const SizedBox(height: 20),
-          _sectionTitle('7. काम की तारीख चुनें'),
+          _sectionTitle('7. चौपाल का स्थान चुनें *'),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(14), border: Border.all(color: locationId == null ? const Color(0xFFDC2626) : t.alternate, width: 1.5)),
+            child: DropdownButtonFormField<int>(
+              value: locationId,
+              isExpanded: true,
+              icon: const Icon(Icons.arrow_drop_down, size: 34),
+              decoration: const InputDecoration(border: InputBorder.none, labelText: 'चौपाल स्थान (जरूरी)', labelStyle: TextStyle(fontSize: 17)),
+              items: locations.map((p) => DropdownMenuItem<int>(
+                value: (p['id'] as num).toInt(),
+                child: Text('${p['display_name']}', overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              )).toList(),
+              onChanged: loadingLocations || locations.isEmpty ? null : (v) => setState(() => locationId = v),
+              hint: Text(loadingLocations ? 'चौपाल की सूची लोड हो रही है...' : 'चौपाल चुनें', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          if (!loadingLocations && locations.isEmpty) const Padding(padding: EdgeInsets.only(top: 8), child: Text('चौपाल की सूची उपलब्ध नहीं है।')),
+          if (locationId == null && !loadingLocations && locations.isNotEmpty) const Padding(padding: EdgeInsets.only(top: 7), child: Text('चौपाल स्थान चुनना जरूरी है।', style: TextStyle(color: Color(0xFFDC2626), fontSize: 15, fontWeight: FontWeight.w700))),
+          const SizedBox(height: 20),
+          _sectionTitle('8. काम की तारीख चुनें'),
           _largeChoiceButton(icon: Icons.calendar_month_outlined, color: const Color(0xFF2563EB), title: jobDate == null ? 'तारीख चुनें' : '${jobDate!.day.toString().padLeft(2, '0')}/${jobDate!.month.toString().padLeft(2, '0')}/${jobDate!.year}', onTap: () async {
             final d = await showDatePicker(context: context, firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 60)), initialDate: DateTime.now().add(const Duration(days: 1)));
             if (d != null) setState(() => jobDate = d);
           }),
           const SizedBox(height: 14),
-          _sectionTitle('8. काम शुरू होने का समय चुनें'),
+          _sectionTitle('9. काम शुरू होने का समय चुनें'),
           _largeChoiceButton(icon: Icons.access_time_outlined, color: const Color(0xFF2563EB), title: startTime == null ? 'समय चुनें' : startTime!.format(context), onTap: () async {
             final d = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
             if (d != null) setState(() => startTime = d);
