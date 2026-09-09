@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:go_router/go_router.dart';
 import 'login_screen_model.dart';
 export 'login_screen_model.dart';
 
@@ -87,7 +88,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
         wrapWithModel(model:_model.buttonModel3,updateCallback:()=>safeSetState((){}),child:ButtonWidget(content:'Create New Account | नया अकाउंट बनाएं',variant:'outline',size:'large',fullWidth:true,loading:false,disabled:false)),
         const SizedBox(height:32),
         Text('v1.0.0 • Secure Production Environment',textAlign:TextAlign.center,style:FlutterFlowTheme.of(context).labelSmall.override(font:GoogleFonts.inter(),color:FlutterFlowTheme.of(context).onSurface,letterSpacing:0.0)),
-      ])))
+      ]))))
     );
   }
 }
