@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
+import '/components/chaupal_app_header.dart';
 import 'package:flutter/material.dart';
 
 class AdminVerificationPanelWidget extends StatefulWidget {
@@ -41,20 +42,16 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
         SnackBar(
           content: Text(
             status == 'approved'
-                ? 'Worker approved.'
+                ? 'कामगार को मंजूरी मिल गई।'
                 : status == 'rejected'
-                    ? 'Worker rejected.'
-                    : 'More information requested.',
+                    ? 'कामगार को अस्वीकार कर दिया गया।'
+                    : 'और जानकारी मांगी गई है।',
           ),
         ),
       );
       setState(() => future = _load());
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Admin action failed.')),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Admin action नहीं हो सका।')));
     }
   }
 
@@ -66,27 +63,27 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
       showDialog(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('Private Document'),
+          title: const Text('दस्तावेज देखें'),
           content: SizedBox(
             width: 300,
             height: 360,
-            child: Image.network(
-              url,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Center(child: Text('Preview unavailable.')),
-            ),
+            child: Image.network(url, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Center(child: Text('फोटो नहीं खुल सकी।'))),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close')),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white),
+                onPressed: () => Navigator.pop(c),
+                child: const Text('बंद करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+              ),
+            ),
           ],
         ),
       );
     } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Private document could not be opened.')),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('दस्तावेज नहीं खुल सका।')));
     }
   }
 
@@ -95,31 +92,14 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
     final t = FlutterFlowTheme.of(context);
     return Scaffold(
       backgroundColor: t.primaryBackground,
-      appBar: AppBar(
-        backgroundColor: t.primaryBackground,
-        foregroundColor: t.primaryText,
-        elevation: 0,
-        title: const Text('Worker Verification | Admin'),
-      ),
+      appBar: const ChaupalAppHeader(title: 'कामगार सत्यापन'),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: future,
         builder: (context, s) {
-          if (s.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (s.hasError) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('Admin access required or verification data unavailable.'),
-              ),
-            );
-          }
-
+          if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+          if (s.hasError) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Admin access required या verification data उपलब्ध नहीं है।')));
           final rows = s.data ?? [];
-          if (rows.isEmpty) {
-            return const Center(child: Text('No pending worker verification.'));
-          }
+          if (rows.isEmpty) return const Center(child: Text('कोई pending कामगार सत्यापन नहीं है।'));
 
           return RefreshIndicator(
             onRefresh: () async {
@@ -135,10 +115,7 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                 return Card(
                   color: t.secondaryBackground,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: t.alternate),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: t.alternate)),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -146,39 +123,48 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                       children: [
                         Row(
                           children: [
-                            _ProfileAvatar(path: w['profile_photo']?.toString(), radius: 32),
+                            _ProfileAvatar(path: w['profile_photo']?.toString(), radius: 36),
                             const SizedBox(width: 14),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '${w['full_name']}',
-                                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
-                                  ),
+                                  Text('${w['full_name']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                                   const SizedBox(height: 6),
-                                  Text('${w['mobile_number']} • ${w['username']}'),
+                                  Text('${w['mobile_number']} • ${w['username']}', style: const TextStyle(fontSize: 16)),
                                 ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text('${w['profession_name'] ?? 'Other Profession'} • ${w['location_name'] ?? ''}'),
-                        const SizedBox(height: 8),
-                        Text('Status: ${w['verification_status']}'),
-                        Text('Aadhaar: ${w['aadhaar_number'] ?? ''}'),
                         const SizedBox(height: 10),
+                        Text('${w['profession_name'] ?? 'अन्य काम'} • ${w['location_name'] ?? ''}', style: const TextStyle(fontSize: 16)),
+                        const SizedBox(height: 8),
+                        Text('स्थिति: ${w['verification_status']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                        Text('आधार नंबर: ${w['aadhaar_number'] ?? ''}', style: const TextStyle(fontSize: 16)),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
-                            OutlinedButton(
-                              onPressed: () => _view('aadhaar-private', w['aadhaar_photo'] as String?),
-                              child: const Text('Aadhaar Photo'),
+                            Expanded(
+                              child: SizedBox(
+                                height: 54,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF1976D2), side: const BorderSide(color: Color(0xFF1976D2), width: 2)),
+                                  onPressed: () => _view('aadhaar-private', w['aadhaar_photo'] as String?),
+                                  child: const Text('आधार फोटो', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 8),
-                            OutlinedButton(
-                              onPressed: () => _view('worker-verification', w['live_verification_photo'] as String?),
-                              child: const Text('Live Photo'),
+                            Expanded(
+                              child: SizedBox(
+                                height: 54,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF1976D2), side: const BorderSide(color: Color(0xFF1976D2), width: 2)),
+                                  onPressed: () => _view('worker-verification', w['live_verification_photo'] as String?),
+                                  child: const Text('लाइव फोटो', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -186,23 +172,35 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                         Row(
                           children: [
                             Expanded(
-                              child: FilledButton(
-                                onPressed: () => _review(w, 'approved'),
-                                child: const Text('Approve'),
+                              child: SizedBox(
+                                height: 56,
+                                child: FilledButton(
+                                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white),
+                                  onPressed: () => _review(w, 'approved'),
+                                  child: const Text('मंजूर करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _review(w, 'more_info'),
-                                child: const Text('More Info'),
+                              child: SizedBox(
+                                height: 56,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF59E0B), side: const BorderSide(color: Color(0xFFF59E0B), width: 2)),
+                                  onPressed: () => _review(w, 'more_info'),
+                                  child: const Text('और जानकारी', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => _review(w, 'rejected'),
-                                child: const Text('Reject'),
+                              child: SizedBox(
+                                height: 56,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFDC2626), side: const BorderSide(color: Color(0xFFDC2626), width: 2)),
+                                  onPressed: () => _review(w, 'rejected'),
+                                  child: const Text('अस्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                                ),
                               ),
                             ),
                           ],
@@ -227,14 +225,8 @@ class _ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (path == null || path!.isEmpty) {
-      return CircleAvatar(radius: radius, child: const Icon(Icons.person, size: 32));
-    }
+    if (path == null || path!.isEmpty) return CircleAvatar(radius: radius, child: const Icon(Icons.person, size: 32));
     final url = SupaFlow.client.storage.from('profile-media').getPublicUrl(path!);
-    return CircleAvatar(
-      radius: radius,
-      backgroundImage: NetworkImage(url),
-      onBackgroundImageError: (_, __) {},
-    );
+    return CircleAvatar(radius: radius, backgroundImage: NetworkImage(url), onBackgroundImageError: (_, __) {});
   }
 }
