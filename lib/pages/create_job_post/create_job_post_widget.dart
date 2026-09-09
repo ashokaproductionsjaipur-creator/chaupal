@@ -160,7 +160,10 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
           'ऑडियो रिकॉर्ड नहीं होगा, लेकिन आप बाकी जानकारी भरकर जॉब पोस्ट कर सकते हैं।',
         ),
         actions: [
-          FilledButton(onPressed: () => Navigator.pop(c), child: const Text('ठीक है')),
+          FilledButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('ठीक है'),
+          ),
         ],
       ),
     );
@@ -465,15 +468,41 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
                   ),
                   if (audioUnavailable) ...[
                     const SizedBox(height: 10),
-                    const Text('इस डिवाइस में रिकॉर्डिंग डिवाइस नहीं मिला। ऑडियो के बिना भी जॉब पोस्ट की जा सकती है।', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                    const Text('इस डिवाइस में रिकॉर्डिंग डिवाइस नहीं मिला। ऑडियो के बिना भी जॉब पोस्ट की जा सकती है.', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
                   ],
                   if (audioPath != null && !recording) ...[
                     const SizedBox(height: 10),
-                    Row(children: [
-                      Expanded(child: SizedBox(height: 56, child: OutlinedButton.icon(onPressed: _playRecording, icon: const Icon(Icons.play_arrow_outlined, size: 30), label: const Text('ऑडियो सुनें', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)))),
-                      const SizedBox(width: 10),
-                      Expanded(child: SizedBox(height: 56, child: OutlinedButton.icon(onPressed: _startRecording, icon: const Icon(Icons.refresh_outlined, size: 28), label: const Text('दोबारा बोलें', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)))),
-                    ]),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 56,
+                            child: OutlinedButton.icon(
+                              onPressed: _playRecording,
+                              icon: const Icon(Icons.play_arrow_outlined, size: 30),
+                              label: const Text(
+                                'ऑडियो सुनें',
+                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: SizedBox(
+                            height: 56,
+                            child: OutlinedButton.icon(
+                              onPressed: _startRecording,
+                              icon: const Icon(Icons.refresh_outlined, size: 28),
+                              label: const Text(
+                                'दोबारा बोलें',
+                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ],
               ),
@@ -552,7 +581,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: t.alternate, width: 1.5)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: t.alternate, width: 1.5)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2)),
+        focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF2563EB), width: 2)),
       ),
     );
   }
