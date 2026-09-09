@@ -26,7 +26,8 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
         const SizedBox(height:14),Row(children:[Expanded(child:_stat(t,'Active Jobs','$active')),const SizedBox(width:10),Expanded(child:_stat(t,'Completed','$completed')),const SizedBox(width:10),Expanded(child:_stat(t,'Total','${jobs.length}'))]),const SizedBox(height:14),
         Card(color:t.secondaryBackground,elevation:0,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14),side:BorderSide(color:t.alternate)),child:Padding(padding:const EdgeInsets.all(16),child:Row(children:[Icon(canPost?Icons.schedule_outlined:Icons.lock_outline),const SizedBox(width:12),Expanded(child:Text(canPost?'Job Posting अभी open है.':'अभी Job Posting बंद है। अगली Posting ${win['next_job_date']??''} को सुबह 10:30 बजे से शुरू होगी.'))]))),const SizedBox(height:14),
         SizedBox(height:52,child:FilledButton.icon(onPressed:canPost?()=>context.goNamed(CreateJobPostWidget.routeName):null,icon:const Icon(Icons.add),label:const Text('Create Job | जॉब पोस्ट करो'))),const SizedBox(height:20),const Text('My Jobs | मेरी Jobs',style:TextStyle(fontSize:18,fontWeight:FontWeight.w800)),const SizedBox(height:10),
-        if(jobs.isEmpty)const Padding(padding:EdgeInsets.all(24),child:Center(child:Text('अभी कोई Job पोस्ट नहीं की गई है.'))),...jobs.map((j)=>Card(color:t.secondaryBackground,elevation:0,margin:const EdgeInsets.only(bottom:10),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12),side:BorderSide(color:t.alternate)),child:ListTile(title:Text('${j['title']}',style:const TextStyle(fontWeight:FontWeight.w700)),subtitle:Text('₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}\n${j['profession_name']} • ${j['location_name']}'),trailing:SizedBox(width:90,child:Column(mainAxisAlignment:MainAxisAlignment.center,crossAxisAlignment:CrossAxisAlignment.end,children:[Text('${j['status']}'),Text('${j['pending_requests']} requests')])),onTap:()=>context.goNamed(JobRequestManagementWidget.routeName))),
+        if(jobs.isEmpty)const Padding(padding:EdgeInsets.all(24),child:Center(child:Text('अभी कोई Job पोस्ट नहीं की गई है.'))),
+        ...jobs.map((j)=>Card(color:t.secondaryBackground,elevation:0,margin:const EdgeInsets.only(bottom:10),shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(12),side:BorderSide(color:t.alternate)),child:ListTile(title:Text('${j['title']}',style:const TextStyle(fontWeight:FontWeight.w700)),subtitle:Text('₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}\n${j['profession_name']} • ${j['location_name']}'),trailing:SizedBox(width:90,child:Column(mainAxisAlignment:MainAxisAlignment.center,crossAxisAlignment:CrossAxisAlignment.end,children:[Text('${j['status']}'),Text('${j['pending_requests']} requests')])),onTap:()=>context.goNamed(JobRequestManagementWidget.routeName))),
       ]));
     }));
   }
@@ -35,12 +36,23 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
 
 class _ProfileAvatar extends StatelessWidget {
   const _ProfileAvatar({required this.path,required this.radius});
-  final String? path; final double radius;
+  final String? path;
+  final double radius;
   @override Widget build(BuildContext context){
     if(path==null||path!.isEmpty)return CircleAvatar(radius:radius,child:const Icon(Icons.person,size:32));
-    return FutureBuilder<String>(future:SupaFlow.client.storage.from('profile-media').createSignedUrl(path!,3600),builder:(context,snapshot){
-      if(snapshot.connectionState==ConnectionState.done&&snapshot.hasData)return CircleAvatar(radius:radius,backgroundImage:NetworkImage(snapshot.data!));
-      return CircleAvatar(radius:radius,child:snapshot.hasError?const Icon(Icons.person,size:32):const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2));
-    });
+    return FutureBuilder<String>(
+      future:SupaFlow.client.storage.from('profile-media').createSignedUrl(path!,3600),
+      builder:(context,snapshot){
+        if(snapshot.connectionState==ConnectionState.done&&snapshot.hasData){
+          return CircleAvatar(radius:radius,backgroundImage:NetworkImage(snapshot.data!));
+        }
+        return CircleAvatar(
+          radius:radius,
+          child:snapshot.hasError
+              ? const Icon(Icons.person,size:32)
+              : const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2)),
+        );
+      },
+    );
   }
 }
