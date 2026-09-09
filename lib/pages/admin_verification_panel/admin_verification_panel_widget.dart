@@ -2,22 +2,121 @@ import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import 'package:flutter/material.dart';
 
-class AdminVerificationPanelWidget extends StatefulWidget{
-  const AdminVerificationPanelWidget({super.key});static String routeName='AdminVerificationPanel';static String routePath='/adminVerificationPanel';
-  @override State<AdminVerificationPanelWidget> createState()=>_AdminVerificationPanelWidgetState();
-}
-class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWidget>{
-  late Future<List<Map<String,dynamic>>> future;
-  @override void initState(){super.initState();future=_load();}
-  Future<List<Map<String,dynamic>>> _load() async{final r=await SupaFlow.client.rpc('get_admin_pending_workers');return List<Map<String,dynamic>>.from(r as List);}
-  Future<void> _review(Map<String,dynamic> w,String status) async{try{await SupaFlow.client.rpc('review_worker_verification',params:{'p_worker_id':w['user_id'],'p_status':status,'p_note':status=='more_info'?'Please provide clearer verification information.':null});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(status=='approved'?'Worker approved.':status=='rejected'?'Worker rejected.':'More information requested.')));setState(()=>future=_load());}}catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Admin action failed.')));}}
-  Future<void> _view(String bucket,String? path) async{if(path==null||path.isEmpty)return;try{final r=await SupaFlow.client.storage.from(bucket).createSignedUrl(path,300);if(mounted)showDialog(context:context,builder:(c)=>AlertDialog(title:const Text('Private Document'),content:SizedBox(width:300,height:360,child:Image.network(r,fit:BoxFit.contain,errorBuilder:(_,__,___)=>const Center(child:Text('Preview unavailable.')))),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Close'))]));}catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Private document could not be opened.')));}}
-  @override Widget build(BuildContext context){final t=FlutterFlowTheme.of(context);return Scaffold(backgroundColor:t.primaryBackground,appBar:AppBar(backgroundColor:t.primaryBackground,foregroundColor:t.primaryText,elevation:0,title:const Text('Worker Verification | Admin')),body:FutureBuilder<List<Map<String,dynamic>>>(future:future,builder:(context,s){if(s.connectionState!=ConnectionState.done)return const Center(child:CircularProgressIndicator());if(s.hasError)return const Center(child:Padding(padding:EdgeInsets.all(24),child:Text('Admin access required or verification data unavailable.')));final rows=s.data??[];if(rows.isEmpty)return const Center(child:Text('No pending worker verification.'));return RefreshIndicator(onRefresh:()async{setState(()=>future=_load());await future;},child:ListView.separated(padding:const EdgeInsets.all(16),itemCount:rows.length,separatorBuilder:(_,__)=>const SizedBox(height:14),itemBuilder:(c,i){final w=rows[i];return Card(color:t.secondaryBackground,elevation:0,shape:RoundedRectangleBorder(borderRadius:BorderRadius.circular(14),side:BorderSide(color:t.alternate)),child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-    Row(children:[_ProfileAvatar(path:w['profile_photo']?.toString(),radius:32),const SizedBox(width:14),Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${w['full_name']}',style:const TextStyle(fontSize:19,fontWeight:FontWeight.w800)),const SizedBox(height:6),Text('${w['mobile_number']} • ${w['username']}')]))]),
-    const SizedBox(height:8),Text('${w['profession_name']??'Other Profession'} • ${w['location_name']??''}'),const SizedBox(height:8),Text('Status: ${w['verification_status']}'),Text('Aadhaar: ${w['aadhaar_number']??''}'),const SizedBox(height:10),Row(children:[OutlinedButton(onPressed:()=>_view('aadhaar-private',w['aadhaar_photo'] as String?),child:const Text('Aadhaar Photo')),const SizedBox(width:8),OutlinedButton(onPressed:()=>_view('worker-verification',w['live_verification_photo'] as String?),child:const Text('Live Photo'))]),const SizedBox(height:12),Row(children:[Expanded(child:FilledButton(onPressed:()=>_review(w,'approved'),child:const Text('Approve'))),const SizedBox(width:8),Expanded(child:OutlinedButton(onPressed:()=>_review(w,'more_info'),child:const Text('More Info'))),const SizedBox(width:8),Expanded(child:OutlinedButton(onPressed:()=>_review(w,'rejected'),child:const Text('Reject')))])]));}));}));}
+class AdminVerificationPanelWidget extends StatefulWidget {
+  const AdminVerificationPanelWidget({super.key});
+  static String routeName = 'AdminVerificationPanel';
+  static String routePath = '/adminVerificationPanel';
+  @override State<AdminVerificationPanelWidget> createState() => _AdminVerificationPanelWidgetState();
 }
 
-class _ProfileAvatar extends StatelessWidget{
-  const _ProfileAvatar({required this.path,required this.radius});final String? path;final double radius;
-  @override Widget build(BuildContext context){if(path==null||path!.isEmpty)return CircleAvatar(radius:radius,child:const Icon(Icons.person,size:32));return FutureBuilder<String>(future:SupaFlow.client.storage.from('profile-media').createSignedUrl(path!,3600),builder:(context,snapshot){if(snapshot.connectionState==ConnectionState.done&&snapshot.hasData)return CircleAvatar(radius:radius,backgroundImage:NetworkImage(snapshot.data!));return CircleAvatar(radius:radius,child:snapshot.hasError?const Icon(Icons.person,size:32):const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2));});}
+class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWidget> {
+  late Future<List<Map<String, dynamic>>> future;
+  @override void initState() { super.initState(); future = _load(); }
+  Future<List<Map<String, dynamic>>> _load() async {
+    final r = await SupaFlow.client.rpc('get_admin_pending_workers');
+    return List<Map<String, dynamic>>.from(r as List);
+  }
+  Future<void> _review(Map<String, dynamic> w, String status) async {
+    try {
+      await SupaFlow.client.rpc('review_worker_verification', params: {'p_worker_id': w['user_id'], 'p_status': status, 'p_note': status == 'more_info' ? 'Please provide clearer verification information.' : null});
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status == 'approved' ? 'Worker approved.' : status == 'rejected' ? 'Worker rejected.' : 'More information requested.')));
+        setState(() => future = _load());
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Admin action failed.')));
+    }
+  }
+  Future<void> _view(String bucket, String? path) async {
+    if (path == null || path.isEmpty) return;
+    try {
+      final r = await SupaFlow.client.storage.from(bucket).createSignedUrl(path, 300);
+      if (mounted) {
+        showDialog(context: context, builder: (c) => AlertDialog(title: const Text('Private Document'), content: SizedBox(width: 300, height: 360, child: Image.network(r, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Center(child: Text('Preview unavailable.')))), actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Close'))]));
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Private document could not be opened.')));
+    }
+  }
+  @override Widget build(BuildContext context) {
+    final t = FlutterFlowTheme.of(context);
+    return Scaffold(
+      backgroundColor: t.primaryBackground,
+      appBar: AppBar(backgroundColor: t.primaryBackground, foregroundColor: t.primaryText, elevation: 0, title: const Text('Worker Verification | Admin')),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: future,
+        builder: (context, s) {
+          if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+          if (s.hasError) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Admin access required or verification data unavailable.')));
+          final rows = s.data ?? [];
+          if (rows.isEmpty) return const Center(child: Text('No pending worker verification.'));
+          return RefreshIndicator(
+            onRefresh: () async { setState(() => future = _load()); await future; },
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: rows.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 14),
+              itemBuilder: (c, i) {
+                final w = rows[i];
+                return Card(
+                  color: t.secondaryBackground,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: t.alternate)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        _ProfileAvatar(path: w['profile_photo']?.toString(), radius: 32),
+                        const SizedBox(width: 14),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('${w['full_name']}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 6),
+                          Text('${w['mobile_number']} • ${w['username']}'),
+                        ])),
+                      ]),
+                      const SizedBox(height: 8),
+                      Text('${w['profession_name'] ?? 'Other Profession'} • ${w['location_name'] ?? ''}'),
+                      const SizedBox(height: 8),
+                      Text('Status: ${w['verification_status']}'),
+                      Text('Aadhaar: ${w['aadhaar_number'] ?? ''}'),
+                      const SizedBox(height: 10),
+                      Row(children: [
+                        OutlinedButton(onPressed: () => _view('aadhaar-private', w['aadhaar_photo'] as String?), child: const Text('Aadhaar Photo')),
+                        const SizedBox(width: 8),
+                        OutlinedButton(onPressed: () => _view('worker-verification', w['live_verification_photo'] as String?), child: const Text('Live Photo')),
+                      ]),
+                      const SizedBox(height: 12),
+                      Row(children: [
+                        Expanded(child: FilledButton(onPressed: () => _review(w, 'approved'), child: const Text('Approve'))),
+                        const SizedBox(width: 8),
+                        Expanded(child: OutlinedButton(onPressed: () => _review(w, 'more_info'), child: const Text('More Info'))),
+                        const SizedBox(width: 8),
+                        Expanded(child: OutlinedButton(onPressed: () => _review(w, 'rejected'), child: const Text('Reject'))),
+                      ]),
+                    ]),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({required this.path, required this.radius});
+  final String? path;
+  final double radius;
+  @override Widget build(BuildContext context) {
+    if (path == null || path!.isEmpty) return CircleAvatar(radius: radius, child: const Icon(Icons.person, size: 32));
+    return FutureBuilder<String>(
+      future: SupaFlow.client.storage.from('profile-media').createSignedUrl(path!, 3600),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) return CircleAvatar(radius: radius, backgroundImage: NetworkImage(snapshot.data!));
+        return CircleAvatar(radius: radius, child: snapshot.hasError ? const Icon(Icons.person, size: 32) : const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)));
+      },
+    );
+  }
 }
