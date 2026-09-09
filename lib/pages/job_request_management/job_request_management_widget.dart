@@ -55,7 +55,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
     await jobsFuture;
   }
 
-  Future<String?> _signed(String? path) async {
+  Future<String?> _signedJob(String? path) async {
     if (path == null || path.trim().isEmpty || path == 'null') return null;
     try {
       return await SupaFlow.client.storage.from('job-media').createSignedUrl(path, 600);
@@ -64,8 +64,17 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
     }
   }
 
+  Future<String?> _signedProfile(String? path) async {
+    if (path == null || path.trim().isEmpty || path == 'null') return null;
+    try {
+      return await SupaFlow.client.storage.from('profile-media').createSignedUrl(path, 600);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _playAudio(String path) async {
-    final url = await _signed(path);
+    final url = await _signedJob(path);
     if (url == null) return;
     try {
       await player.play(UrlSource(url));
@@ -199,21 +208,11 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (photo.isNotEmpty)
             FutureBuilder<String?>(
-              future: _signed(photo),
+              future: _signedJob(photo),
               builder: (context, s) {
-                if (s.connectionState != ConnectionState.done) {
-                  return const SizedBox(height: 170, child: Center(child: CircularProgressIndicator()));
-                }
-                if (!s.hasData || s.data == null) {
-                  return Container(height: 120, width: double.infinity, alignment: Alignment.center, child: const Icon(Icons.image_not_supported_outlined, size: 42));
-                }
-                return Image.network(
-                  s.data!,
-                  height: 190,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(height: 120, width: double.infinity, alignment: Alignment.center, child: const Icon(Icons.image_not_supported_outlined, size: 42)),
-                );
+                if (s.connectionState != ConnectionState.done) return const SizedBox(height: 170, child: Center(child: CircularProgressIndicator()));
+                if (!s.hasData || s.data == null) return Container(height: 120, width: double.infinity, alignment: Alignment.center, child: const Icon(Icons.image_not_supported_outlined, size: 42));
+                return Image.network(s.data!, height: 190, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(height: 120, width: double.infinity, alignment: Alignment.center, child: const Icon(Icons.image_not_supported_outlined, size: 42)));
               },
             ),
           Padding(
@@ -221,11 +220,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Expanded(child: Text('${j['title'] ?? '-'}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900))),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(color: count > 0 ? const Color(0xFF16A34A) : const Color(0xFF64748B), borderRadius: BorderRadius.circular(22)),
-                  child: Text('$count अनुरोध', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-                ),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), decoration: BoxDecoration(color: count > 0 ? const Color(0xFF16A34A) : const Color(0xFF64748B), borderRadius: BorderRadius.circular(22)), child: Text('$count अनुरोध', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900))),
               ]),
               const SizedBox(height: 9),
               Text('काम: ${j['profession_name'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -234,16 +229,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
               const SizedBox(height: 5),
               Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 15)),
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
-                  onPressed: () => _openJob(j),
-                  icon: const Icon(Icons.people_alt_outlined, size: 26),
-                  label: Text(count > 0 ? 'कामगार अनुरोध देखें' : 'जॉब खोलें', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                ),
-              ),
+              SizedBox(width: double.infinity, height: 52, child: FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white), onPressed: () => _openJob(j), icon: const Icon(Icons.people_alt_outlined, size: 26), label: Text(count > 0 ? 'कामगार अनुरोध देखें' : 'जॉब खोलें', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
             ]),
           ),
         ]),
@@ -259,16 +245,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 30),
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF2563EB), side: const BorderSide(color: Color(0xFF2563EB), width: 2)),
-              onPressed: busy ? null : () => setState(() => selectedJob = null),
-              icon: const Icon(Icons.arrow_back, size: 25),
-              label: const Text('सभी जॉब्स देखें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            ),
-          ),
+          SizedBox(width: double.infinity, height: 50, child: OutlinedButton.icon(style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF2563EB), side: const BorderSide(color: Color(0xFF2563EB), width: 2)), onPressed: busy ? null : () => setState(() => selectedJob = null), icon: const Icon(Icons.arrow_back, size: 25), label: const Text('सभी जॉब्स देखें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
           const SizedBox(height: 12),
           _jobSummary(t, j),
           const SizedBox(height: 18),
@@ -313,7 +290,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
           if (photo.isNotEmpty) ...[
             const SizedBox(height: 12),
             FutureBuilder<String?>(
-              future: _signed(photo),
+              future: _signedJob(photo),
               builder: (_, s) {
                 if (!s.hasData || s.data == null) return const SizedBox(height: 130, child: Center(child: CircularProgressIndicator()));
                 return ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(s.data!, height: 180, width: double.infinity, fit: BoxFit.cover));
@@ -330,6 +307,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
   }
 
   Widget _requestCard(Map<String, dynamic> r) {
+    final profilePhoto = '${r['worker_profile_photo'] ?? ''}'.trim();
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
@@ -337,11 +315,14 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
       child: Padding(
         padding: const EdgeInsets.all(15),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+            _workerPhoto(profilePhoto),
+            const SizedBox(width: 12),
             Expanded(child: Text('${r['worker_name'] ?? '-'}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
+            const SizedBox(width: 8),
             Text('${r['request_type'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w800)),
           ]),
-          const SizedBox(height: 6),
+          const SizedBox(height: 10),
           Text('मोबाइल: ${r['worker_mobile'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 5),
           Text('काम: ${r['worker_profession'] ?? '-'}   •   चौपाल: ${r['worker_location'] ?? '-'}', style: const TextStyle(fontSize: 15)),
@@ -357,6 +338,37 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
           const Text('मोबाइल नंबर दिखाया गया है। मालिक अपने सामान्य फोन से कॉल करेगा।', style: TextStyle(fontSize: 12)),
         ]),
       ),
+    );
+  }
+
+  Widget _workerPhoto(String path) {
+    if (path.isEmpty) return _workerPhotoFallback();
+    return FutureBuilder<String?>(
+      future: _signedProfile(path),
+      builder: (context, s) {
+        if (s.connectionState != ConnectionState.done) return _workerPhotoFallback(loading: true);
+        final url = s.data;
+        if (url == null || url.isEmpty) return _workerPhotoFallback();
+        return ClipOval(
+          child: Image.network(
+            url,
+            width: 64,
+            height: 64,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _workerPhotoFallback(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _workerPhotoFallback({bool loading = false}) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFFE2E8F0)),
+      alignment: Alignment.center,
+      child: loading ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.person, size: 34, color: Color(0xFF64748B)),
     );
   }
 }
