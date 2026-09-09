@@ -29,13 +29,14 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
   @override void dispose(){for(final c in [name,mobile,username,password,confirm,aadhaar,otherProfession])c.dispose();super.dispose();}
 
   Future<void> _loadMasters() async {
-    setState(()=>loadingMasters=true);
+    if(mounted)setState(()=>loadingMasters=true);
     try {
       final r=await http.get(Uri.parse('https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/chaupal-masters'));
       final body=jsonDecode(r.body);
       if(r.statusCode<200||r.statusCode>=300||body is! Map||body['ok']!=true) throw Exception(body is Map&&body['message'] is String?body['message']:'Master data could not be loaded.');
-      final rawLocations=body['locations']; final rawProfessions=body['professions'];
-      if(mounted)setState(()=>{locations:List<Map<String,dynamic>>.from(rawLocations is List?rawLocations:const []),professions:List<Map<String,dynamic>>.from(rawProfessions is List?rawProfessions:const [])});
+      final rawLocations=body['locations'];
+      final rawProfessions=body['professions'];
+      if(mounted){setState(() {locations=List<Map<String,dynamic>>.from(rawLocations is List?rawLocations:const []);professions=List<Map<String,dynamic>>.from(rawProfessions is List?rawProfessions:const []);});}
     } catch(e) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('Dropdown data load failed: ${e.toString().replaceFirst('Exception: ','')}')));
     } finally { if(mounted)setState(()=>loadingMasters=false); }
