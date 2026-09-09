@@ -25,7 +25,6 @@ void main() async {
 }
 
 class MyApp extends StatefulWidget {
-  // This widget is the root of your application.
   @override
   State<MyApp> createState() => _MyAppState();
 
@@ -75,8 +74,22 @@ class _MyAppState extends State<MyApp> {
         FlutterFlowTheme.saveThemeMode(mode);
       });
 
+  ButtonStyle _largeButtonStyle() {
+    return ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size(0, 56)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      ),
+      textStyle: const WidgetStatePropertyAll(
+        TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final buttonStyle = _largeButtonStyle();
+
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Chaupal',
@@ -89,10 +102,18 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: false,
+        elevatedButtonTheme: ElevatedButtonThemeData(style: buttonStyle),
+        filledButtonTheme: FilledButtonThemeData(style: buttonStyle),
+        outlinedButtonTheme: OutlinedButtonThemeData(style: buttonStyle),
+        textButtonTheme: TextButtonThemeData(style: buttonStyle),
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: false,
+        elevatedButtonTheme: ElevatedButtonThemeData(style: buttonStyle),
+        filledButtonTheme: FilledButtonThemeData(style: buttonStyle),
+        outlinedButtonTheme: OutlinedButtonThemeData(style: buttonStyle),
+        textButtonTheme: TextButtonThemeData(style: buttonStyle),
       ),
       themeMode: _themeMode,
       routerConfig: _router,
