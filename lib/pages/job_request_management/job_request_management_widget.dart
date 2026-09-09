@@ -186,9 +186,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
     final t = FlutterFlowTheme.of(context);
     return Scaffold(
       backgroundColor: t.primaryBackground,
-      appBar: ChaupalAppHeader(
-        title: selectedJob == null ? 'मेरी पोस्ट की गई जॉब्स' : 'कामगार अनुरोध',
-      ),
+      appBar: ChaupalAppHeader(title: selectedJob == null ? 'मेरी पोस्ट की गई जॉब्स' : 'कामगार अनुरोध'),
       body: selectedJob == null ? _jobList(t) : _requestPage(t),
     );
   }
@@ -198,13 +196,9 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
       future: jobsFuture,
       builder: (context, s) {
         if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-        if (s.hasError) {
-          return _errorBox('आपकी जॉब्स लोड नहीं हो सकीं।', () => _refreshJobs());
-        }
+        if (s.hasError) return _errorBox('आपकी जॉब्स लोड नहीं हो सकीं।', () => _refreshJobs());
         final jobs = s.data ?? <Map<String, dynamic>>[];
-        if (jobs.isEmpty) {
-          return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('अभी आपकी कोई पोस्ट की गई जॉब नहीं है।')));
-        }
+        if (jobs.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('अभी आपकी कोई पोस्ट की गई जॉब नहीं है।')));
         return RefreshIndicator(
           onRefresh: _refreshJobs,
           child: ListView.separated(
@@ -291,9 +285,13 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
             builder: (context, s) {
               if (s.connectionState != ConnectionState.done) return const Padding(padding: EdgeInsets.all(35), child: Center(child: CircularProgressIndicator()));
               if (s.hasError) {
-                return _errorBox('इस जॉब के अनुरोध लोड नहीं हो सके।', () {
+                return _errorBox('इस जॉब के अनुरोध लोड नहीं हो सके।', () async {
                   final id = selectedJob?['job_id']?.toString();
-                  if (id != null) setState(() => requestsFuture = _loadRequests(id));
+                  if (id != null && id.isNotEmpty) {
+                    final future = _loadRequests(id);
+                    if (mounted) setState(() => requestsFuture = future);
+                    await future;
+                  }
                 });
               }
               final rows = s.data ?? <Map<String, dynamic>>[];
@@ -308,11 +306,9 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
                   ),
                 ]),
                 const SizedBox(height: 8),
-                if (rows.isNotEmpty)
-                  Text('कुल अनुरोध: ${rows.length}  •  Pending: $pending', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                if (rows.isNotEmpty) Text('कुल अनुरोध: ${rows.length}  •  Pending: $pending', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 10),
-                if (rows.isEmpty)
-                  const Card(child: Padding(padding: EdgeInsets.all(22), child: Center(child: Text('इस जॉब पर अभी कोई कामगार अनुरोध नहीं है।', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))))),
+                if (rows.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(22), child: Center(child: Text('इस जॉब पर अभी कोई कामगार अनुरोध नहीं है।', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600))))),
                 if (rows.isNotEmpty) ...rows.map(_requestCard),
               ]);
             },
@@ -355,16 +351,8 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
       builder: (context, s) {
         if (s.connectionState != ConnectionState.done) return SizedBox(height: height, child: const Center(child: CircularProgressIndicator()));
         final url = s.data;
-        if (url == null || url.isEmpty) {
-          return Container(height: height, width: double.infinity, alignment: Alignment.center, color: const Color(0xFFF1F5F9), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.image_not_supported_outlined, size: 42), SizedBox(height: 5), Text('फोटो उपलब्ध नहीं है')]));
-        }
-        return Image.network(
-          url,
-          height: height,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(height: height, width: double.infinity, alignment: Alignment.center, color: const Color(0xFFF1F5F9), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.broken_image_outlined, size: 42), SizedBox(height: 5), Text('फोटो दिखाई नहीं दे रही')])) ,
-        );
+        if (url == null || url.isEmpty) return Container(height: height, width: double.infinity, alignment: Alignment.center, color: const Color(0xFFF1F5F9), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.image_not_supported_outlined, size: 42), SizedBox(height: 5), Text('फोटो उपलब्ध नहीं है')]));
+        return Image.network(url, height: height, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(height: height, width: double.infinity, alignment: Alignment.center, color: const Color(0xFFF1F5F9), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.broken_image_outlined, size: 42), SizedBox(height: 5), Text('फोटो दिखाई नहीं दे रही')])));
       },
     );
   }
