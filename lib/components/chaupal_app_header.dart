@@ -1,4 +1,5 @@
 import '/auth/custom_auth/auth_util.dart';
+import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/pages/role_selection/role_selection_widget.dart';
@@ -23,16 +24,65 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
     }
   }
 
-  void _showProfile(BuildContext context) {
-    final user = currentUserData;
+  Future<Map<String, dynamic>> _loadProfile() async {
+    final role = currentUserData?.role.toLowerCase() ?? '';
+
+    try {
+      if (role == 'worker') {
+        final result = await SupaFlow.client.rpc('get_my_worker_status');
+        final data = Map<String, dynamic>.from(result as Map);
+        return Map<String, dynamic>.from((data['user'] as Map?) ?? {});
+      }
+
+      if (role == 'owner') {
+        final result = await SupaFlow.client.rpc('get_owner_dashboard');
+        final data = Map<String, dynamic>.from(result as Map);
+        return Map<String, dynamic>.from((data['profile'] as Map?) ?? {});
+      }
+    } catch (_) {
+      // Keep the profile dialog usable even if the profile RPC is unavailable.
+    }
+
+    return {
+      'full_name': currentUserData?.fullName ?? '',
+      'username': currentUserData?.username ?? '',
+      'mobile_number': currentUserData?.mobileNumber ?? '',
+      'profile_photo': '',
+    };
+  }
+
+  Future<void> _showProfile(BuildContext context) async {
+    final profile = await _loadProfile();
+    if (!context.mounted) return;
+
+    final photoPath = profile['profile_photo']?.toString() ?? '';
+    final photoUrl = photoPath.isNotEmpty
+        ? SupaFlow.client.storage.from('profile-media').getPublicUrl(photoPath)
+        : '';
+
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Profile | प्रोफाइल'),
-        content: Text(
-          '${user?.fullName ?? ''}\n'
-          '${user?.username ?? ''}\n'
-          '${user?.mobileNumber ?? ''}',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: 42,
+              backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+              child: photoUrl.isEmpty ? const Icon(Icons.person, size: 42) : null,
+            ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                '${profile['full_name'] ?? ''}\n'
+                '${profile['username'] ?? currentUserData?.username ?? ''}\n'
+                '${profile['mobile_number'] ?? currentUserData?.mobileNumber ?? ''}',
+                style: const TextStyle(fontSize: 16, height: 1.5),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
