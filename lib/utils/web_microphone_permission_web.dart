@@ -3,11 +3,24 @@
 import 'dart:html' as html;
 
 Future<bool> requestWebMicrophone() async {
+  // First use the modern MediaDevices API.
   try {
     final devices = html.window.navigator.mediaDevices;
-    if (devices == null) return false;
+    if (devices != null) {
+      final stream = await devices.getUserMedia({'audio': true});
+      for (final track in stream.getAudioTracks()) {
+        track.stop();
+      }
+      return true;
+    }
+  } catch (_) {
+    // Fall through to the browser's legacy getUserMedia bridge.
+  }
 
-    final stream = await devices.getUserMedia({'audio': true});
+  // Compatibility fallback for Chromium environments where the modern
+  // navigator.mediaDevices bridge is unavailable or blocked by the wrapper.
+  try {
+    final stream = await html.window.navigator.getUserMedia(audio: true);
     for (final track in stream.getAudioTracks()) {
       track.stop();
     }
