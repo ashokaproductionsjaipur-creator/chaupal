@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/components/chaupal_app_header.dart';
@@ -15,6 +14,7 @@ class AdminVerificationPanelWidget extends StatefulWidget {
 
 class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWidget> {
   late Future<List<Map<String, dynamic>>> future;
+  final Set<String> _busyWorkers = <String>{};
 
   @override
   void initState() {
@@ -28,15 +28,20 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
   }
 
   Future<void> _review(Map<String, dynamic> w, String status) async {
+    final workerId = w['user_id']?.toString();
+    if (workerId == null || workerId.isEmpty || _busyWorkers.contains(workerId)) return;
+
+    setState(() => _busyWorkers.add(workerId));
     try {
       await SupaFlow.client.rpc(
         'review_worker_verification',
         params: {
-          'p_worker_id': w['user_id'],
+          'p_worker_id': workerId,
           'p_status': status,
           'p_note': status == 'more_info' ? 'Please provide clearer verification information.' : null,
         },
       );
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -49,9 +54,18 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
           ),
         ),
       );
-      setState(() => future = _load());
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Admin action नहीं हो सका।')));
+
+      final next = _load();
+      setState(() => future = next);
+      await next;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Admin action नहीं हो सका: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busyWorkers.remove(workerId));
     }
   }
 
@@ -67,7 +81,11 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
           content: SizedBox(
             width: 300,
             height: 360,
-            child: Image.network(url, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Center(child: Text('फोटो नहीं खुल सकी।'))),
+            child: Image.network(
+              url,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const Center(child: Text('फोटो नहीं खुल सकी।')),
+            ),
           ),
           actions: [
             SizedBox(
@@ -82,8 +100,8 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
           ],
         ),
       );
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('दस्तावेज नहीं खुल सका।')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('दस्तावेज नहीं खुल सका: $e')));
     }
   }
 
@@ -103,8 +121,9 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
 
           return RefreshIndicator(
             onRefresh: () async {
-              setState(() => future = _load());
-              await future;
+              final next = _load();
+              setState(() => future = next);
+              await next;
             },
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
@@ -112,6 +131,8 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
               separatorBuilder: (_, __) => const SizedBox(height: 14),
               itemBuilder: (c, i) {
                 final w = rows[i];
+                final workerId = w['user_id']?.toString() ?? '';
+                final busy = _busyWorkers.contains(workerId);
                 return Card(
                   color: t.secondaryBackground,
                   elevation: 0,
@@ -150,7 +171,7 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                                 height: 54,
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF1976D2), side: const BorderSide(color: Color(0xFF1976D2), width: 2)),
-                                  onPressed: () => _view('aadhaar-private', w['aadhaar_photo'] as String?),
+                                  onPressed: busy ? null : () => _view('aadhaar-private', w['aadhaar_photo'] as String?),
                                   child: const Text('आधार फोटो', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                                 ),
                               ),
@@ -161,7 +182,7 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                                 height: 54,
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF1976D2), side: const BorderSide(color: Color(0xFF1976D2), width: 2)),
-                                  onPressed: () => _view('worker-verification', w['live_verification_photo'] as String?),
+                                  onPressed: busy ? null : () => _view('worker-verification', w['live_verification_photo'] as String?),
                                   child: const Text('लाइव फोटो', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                                 ),
                               ),
@@ -176,8 +197,8 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                                 height: 56,
                                 child: FilledButton(
                                   style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white),
-                                  onPressed: () => _review(w, 'approved'),
-                                  child: const Text('मंजूर करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                                  onPressed: busy ? null : () => _review(w, 'approved'),
+                                  child: busy ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('मंजूर करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                                 ),
                               ),
                             ),
@@ -187,7 +208,7 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                                 height: 56,
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF59E0B), side: const BorderSide(color: Color(0xFFF59E0B), width: 2)),
-                                  onPressed: () => _review(w, 'more_info'),
+                                  onPressed: busy ? null : () => _review(w, 'more_info'),
                                   child: const Text('और जानकारी', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                                 ),
                               ),
@@ -198,7 +219,7 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                                 height: 56,
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFDC2626), side: const BorderSide(color: Color(0xFFDC2626), width: 2)),
-                                  onPressed: () => _review(w, 'rejected'),
+                                  onPressed: busy ? null : () => _review(w, 'rejected'),
                                   child: const Text('अस्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
                                 ),
                               ),
