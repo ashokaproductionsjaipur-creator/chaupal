@@ -1,6 +1,6 @@
 // Web microphone permission bridge.
-// Prefer the same permission path used by the `record` package, then fall
-// back to the browser MediaDevices API if the package cannot request it.
+// The browser must grant microphone access before the recorder can start.
+// Try the record package first, then the modern and legacy browser APIs.
 import 'dart:html' as html;
 
 import 'package:record/record.dart';
@@ -8,26 +8,35 @@ import 'package:record/record.dart';
 Future<bool> requestWebMicrophone() async {
   final recorder = AudioRecorder();
   try {
-    final allowedByRecorder = await recorder.hasPermission(request: true);
-    if (allowedByRecorder) return true;
+    if (await recorder.hasPermission(request: true)) {
+      return true;
+    }
   } catch (_) {
-    // Try the browser API below.
+    // Continue with the browser APIs below.
   } finally {
-    recorder.dispose();
+    await recorder.dispose();
   }
 
+  // Modern Chrome/Edge/Firefox API.
   try {
     final devices = html.window.navigator.mediaDevices;
-    if (devices == null) return false;
+    if (devices != null) {
+      final stream = await devices.getUserMedia(<String, dynamic>{
+        'audio': true,
+        'video': false,
+      });
+      for (final track in stream.getAudioTracks()) {
+        track.stop();
+      }
+      return true;
+    }
+  } catch (_) {
+    // Try the legacy browser API below.
+  }
 
-    final stream = await devices.getUserMedia(<String, dynamic>{
-      'audio': <String, dynamic>{
-        'echoCancellation': true,
-        'noiseSuppression': true,
-        'autoGainControl': true,
-      },
-    });
-
+  // Legacy API is useful on some browser/WebView combinations.
+  try {
+    final stream = await html.window.navigator.getUserMedia(audio: true);
     for (final track in stream.getAudioTracks()) {
       track.stop();
     }
