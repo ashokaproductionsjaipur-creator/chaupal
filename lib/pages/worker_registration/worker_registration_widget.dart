@@ -92,11 +92,32 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
       _locationDropdown(),
       if(role=='worker')...[const SizedBox(height:12),_professionDropdown(),const SizedBox(height:12),_field('Other Profession | अन्य',otherProfession,'Only if Other Profession')],
       const SizedBox(height:12),_field('Aadhaar Number | आधार',aadhaar,'12 digit',keyboard:TextInputType.number),const SizedBox(height:12),
-      _photoTile('Profile Photo | प्रोफाइल फोटो',profilePhoto,()async{final x=await _image(cameraOnly:false);if(x!=null)setState(()=>profilePhoto=x);}),const SizedBox(height:10),
+      _profilePhotoTile(),const SizedBox(height:10),
       _photoTile('Aadhaar Photo | आधार फोटो',aadhaarPhoto,()async{final x=await _image(cameraOnly:false);if(x!=null)setState(()=>aadhaarPhoto=x);}),
       if(role=='worker')...[const SizedBox(height:10),_photoTile('Live Verification Photo | Live फोटो (Camera only)',livePhoto,()async{final x=await _image(cameraOnly:true);if(x!=null)setState(()=>livePhoto=x);})],
       const SizedBox(height:20),SizedBox(height:52,child:FilledButton(onPressed:busy?null:_register,child:Text(busy?'Creating...':'Create Account | अकाउंट बनाएं')))
     ]));
+  }
+
+  Widget _profilePhotoTile(){
+    return InkWell(
+      onTap:()async{final x=await _image(cameraOnly:false);if(x!=null)setState(()=>profilePhoto=x);},
+      borderRadius:BorderRadius.circular(12),
+      child:Container(
+        padding:const EdgeInsets.all(12),
+        decoration:BoxDecoration(borderRadius:BorderRadius.circular(12),border:Border.all(color:FlutterFlowTheme.of(context).alternate)),
+        child:Row(children:[
+          CircleAvatar(radius:30,backgroundImage:profilePhoto!=null?NetworkImage(profilePhoto!.path):null,child:profilePhoto==null?const Icon(Icons.person,size:32):null),
+          const SizedBox(width:14),
+          Expanded(child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text(profilePhoto==null?'Profile Photo | प्रोफाइल फोटो *':'Profile Photo | प्रोफाइल फोटो ✓',style:const TextStyle(fontWeight:FontWeight.w600)),
+            const SizedBox(height:4),
+            Text(profilePhoto==null?'Required • Camera या Gallery से photo चुनें':'Photo selected • Tap to change'),
+          ])),
+          const Icon(Icons.camera_alt_outlined),
+        ]),
+      ),
+    );
   }
 
   Widget _locationDropdown(){return DropdownButtonFormField<int>(value:locationId,isExpanded:true,menuMaxHeight:420,decoration:const InputDecoration(labelText:'Chaupal Location | चौपाल लोकेशन',hintText:'Select Chaupal Location',border:OutlineInputBorder(),suffixIcon:Icon(Icons.location_on_outlined)),items:loadingMasters?const []:locations.map((x){final id=(x['id'] as num).toInt();return DropdownMenuItem<int>(value:id,child:Text('${x['display_name']}',overflow:TextOverflow.ellipsis));}).toList(),onChanged:loadingMasters?null:(v)=>setState(()=>locationId=v));}
