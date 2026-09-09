@@ -49,6 +49,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
   bool recording = false;
   bool saving = false;
   bool loadingProfessions = true;
+  bool audioUnavailable = false;
 
   @override
   void initState() {
@@ -162,25 +163,61 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
     }
   }
 
+  Future<void> _showNoMicrophoneDialog() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('रिकॉर्डिंग डिवाइस नहीं मिला'),
+        content: const Text(
+          'इस डिवाइस में कोई माइक्रोफोन / रिकॉर्डिंग डिवाइस उपलब्ध नहीं है।\n\n'
+          'ऑडियो रिकॉर्ड नहीं होगा, लेकिन आप बाकी जानकारी भरकर जॉब पोस्ट कर सकते हैं।',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('ठीक है'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _startRecording() async {
     if (recording) return;
 
     try {
-      final allowed = kIsWeb
-          ? await requestWebMicrophone()
-          : await recorder.hasPermission(request: true);
-
-      if (!allowed) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'माइक्रोफोन की अनुमति नहीं मिली। कृपया अनुमति दें।',
-              ),
-            ),
-          );
+      if (kIsWeb) {
+        final status = await requestWebMicrophoneStatus();
+        if (status == WebMicrophoneStatus.noDevice) {
+          if (mounted) {
+            setState(() {
+              audioUnavailable = true;
+              audioPath = null;
+              seconds = 0;
+            });
+          }
+          await _showNoMicrophoneDialog();
+          return;
         }
-        return;
+        if (status != WebMicrophoneStatus.available) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('माइक्रोफोन की अनुमति नहीं मिली। कृपया अनुमति दें।')),
+            );
+          }
+          return;
+        }
+      } else {
+        final allowed = await recorder.hasPermission(request: true);
+        if (!allowed) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('माइक्रोफोन की अनुमति नहीं मिली। कृपया अनुमति दें।')),
+            );
+          }
+          return;
+        }
       }
 
       final String path;
@@ -206,6 +243,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
         recording = true;
         seconds = 0;
         audioPath = null;
+        audioUnavailable = false;
       });
 
       timer = Timer.periodic(const Duration(seconds: 1), (t) async {
@@ -280,18 +318,22 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
   Future<void> _submit() async {
     if (saving) return;
 
+    final audioRequired = !audioUnavailable;
+
     if (title.text.trim().isEmpty ||
         professionId == null ||
         workImage == null ||
-        audioPath == null ||
+        (audioRequired && audioPath == null) ||
         amount.text.trim().isEmpty ||
         jobDate == null ||
         startTime == null ||
         locationId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'कृपया सभी जरूरी जानकारी भरें। फोटो और ऑडियो भी जरूरी हैं।',
+            audioRequired
+                ? 'कृपया सभी जरूरी जानकारी भरें। फोटो और ऑडियो भी जरूरी हैं।'
+                : 'कृपया सभी जरूरी जानकारी भरें। इस डिवाइस में रिकॉर्डिंग डिवाइस नहीं है, इसलिए ऑडियो की जरूरत नहीं है।',
           ),
         ),
       );
@@ -335,16 +377,18 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
             ),
           );
 
-      audioStoragePath = '$uid/job_$stamp.wav';
-      final audioBytes = await _readRecordedAudio(audioPath!);
-      await SupaFlow.client.storage.from('job-media').uploadBinary(
-            audioStoragePath!,
-            audioBytes,
-            fileOptions: const FileOptions(
-              contentType: 'audio/wav',
-              upsert: false,
-            ),
-          );
+      if (audioPath != null) {
+        audioStoragePath = '$uid/job_$stamp.wav';
+        final audioBytes = await _readRecordedAudio(audioPath!);
+        await SupaFlow.client.storage.from('job-media').uploadBinary(
+              audioStoragePath!,
+              audioBytes,
+              fileOptions: const FileOptions(
+                contentType: 'audio/wav',
+                upsert: false,
+              ),
+            );
+      }
 
       await SupaFlow.client.rpc(
         'create_chaupal_job',
@@ -381,7 +425,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
       final message = s.contains('posting_window_closed')
           ? 'अभी जॉब पोस्टिंग बंद है। अगली पोस्टिंग में कोशिश करें।'
           : s.contains('audio_note_required')
-              ? 'ऑडियो नोट जरूरी है। कृपया 1 मिनट तक की रिकॉर्डिंग करें।'
+              ? 'ऑडियो नोट जरूरी है। कृपया रिकॉर्डिंग करें।'
               : 'जॉब पोस्ट नहीं हुई: $s';
 
       if (mounted) {
@@ -530,6 +574,14 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
                       ),
                     ),
                   ),
+                  if (audioUnavailable) ...[
+                    const SizedBox(height: 10),
+                    const Text(
+                      'इस डिवाइस में रिकॉर्डिंग डिवाइस नहीं मिला। ऑडियो के बिना भी जॉब पोस्ट की जा सकती है।',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                  ],
                   if (audioPath != null && !recording) ...[
                     const SizedBox(height: 10),
                     Row(
