@@ -10,6 +10,7 @@ class ButtonWidget extends StatefulWidget {
   const ButtonWidget({
     super.key,
     this.icon,
+    this.onTap,
     bool? iconPresent,
     this.iconEnd,
     bool? iconEndPresent,
@@ -29,6 +30,7 @@ class ButtonWidget extends StatefulWidget {
         this.disabled = disabled ?? false;
 
   final Widget? icon;
+  final Future<void> Function()? onTap;
   final bool iconPresent;
   final Widget? iconEnd;
   final bool iconEndPresent;
@@ -61,7 +63,6 @@ class _ButtonWidgetState extends State<ButtonWidget> {
   @override
   void dispose() {
     _model.maybeDispose();
-
     super.dispose();
   }
 
@@ -69,378 +70,87 @@ class _ButtonWidgetState extends State<ButtonWidget> {
   Widget build(BuildContext context) {
     return Opacity(
       opacity: valueOrDefault<double>(
-        valueOrDefault<bool>(
-          widget.disabled,
-          false,
-        )
-            ? 0.55
-            : 1.0,
+        valueOrDefault<bool>(widget.disabled, false) ? 0.55 : 1.0,
         1.0,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: valueOrDefault<Color>(
-            () {
-              if (valueOrDefault<String>(
-                    widget.variant,
-                    'primary',
-                  ) ==
-                  'secondary') {
-                return FlutterFlowTheme.of(context).secondary;
-              } else if (valueOrDefault<String>(
-                    widget.variant,
-                    'primary',
-                  ) ==
-                  'outline') {
-                return Colors.transparent;
-              } else if (valueOrDefault<String>(
-                    widget.variant,
-                    'primary',
-                  ) ==
-                  'ghost') {
-                return Colors.transparent;
-              } else if (valueOrDefault<String>(
-                    widget.variant,
-                    'primary',
-                  ) ==
-                  'destructive') {
-                return FlutterFlowTheme.of(context).error;
-              } else {
-                return FlutterFlowTheme.of(context).primary;
-              }
-            }(),
-            FlutterFlowTheme.of(context).primary,
-          ),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(valueOrDefault<double>(
-              () {
-                if (valueOrDefault<String>(
-                      widget.size,
-                      'large',
-                    ) ==
-                    'small') {
-                  return 4.0;
-                } else if (valueOrDefault<String>(
-                      widget.size,
-                      'large',
-                    ) ==
-                    'large') {
-                  return 12.0;
-                } else {
-                  return 8.0;
-                }
-              }(),
-              12.0,
-            )),
-            topRight: Radius.circular(valueOrDefault<double>(
-              () {
-                if (valueOrDefault<String>(
-                      widget.size,
-                      'large',
-                    ) ==
-                    'small') {
-                  return 4.0;
-                } else if (valueOrDefault<String>(
-                      widget.size,
-                      'large',
-                    ) ==
-                    'large') {
-                  return 12.0;
-                } else {
-                  return 8.0;
-                }
-              }(),
-              12.0,
-            )),
-            bottomLeft: Radius.circular(valueOrDefault<double>(
-              () {
-                if (valueOrDefault<String>(
-                      widget.size,
-                      'large',
-                    ) ==
-                    'small') {
-                  return 4.0;
-                } else if (valueOrDefault<String>(
-                      widget.size,
-                      'large',
-                    ) ==
-                    'large') {
-                  return 12.0;
-                } else {
-                  return 8.0;
-                }
-              }(),
-              12.0,
-            )),
-            bottomRight: Radius.circular(valueOrDefault<double>(
-              () {
-                if (valueOrDefault<String>(
-                      widget.size,
-                      'large',
-                    ) ==
-                    'small') {
-                  return 4.0;
-                } else if (valueOrDefault<String>(
-                      widget.size,
-                      'large',
-                    ) ==
-                    'large') {
-                  return 12.0;
-                } else {
-                  return 8.0;
-                }
-              }(),
-              12.0,
-            )),
-          ),
-          shape: BoxShape.rectangle,
-          border: Border.all(
-            color: valueOrDefault<Color>(
-              valueOrDefault<String>(
-                        widget.variant,
-                        'primary',
-                      ) ==
-                      'outline'
+      child: InkWell(
+        onTap: widget.disabled || widget.loading ? null : widget.onTap,
+        borderRadius: BorderRadius.circular(
+          widget.size == 'small' ? 4.0 : (widget.size == 'large' ? 12.0 : 8.0),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: valueOrDefault<Color>(() {
+              if (widget.variant == 'secondary') return FlutterFlowTheme.of(context).secondary;
+              if (widget.variant == 'outline' || widget.variant == 'ghost') return Colors.transparent;
+              if (widget.variant == 'destructive') return FlutterFlowTheme.of(context).error;
+              return FlutterFlowTheme.of(context).primary;
+            }(), FlutterFlowTheme.of(context).primary),
+            borderRadius: BorderRadius.circular(
+              widget.size == 'small' ? 4.0 : (widget.size == 'large' ? 12.0 : 8.0),
+            ),
+            border: Border.all(
+              color: widget.variant == 'outline'
                   ? FlutterFlowTheme.of(context).alternate
                   : Colors.transparent,
-              Colors.transparent,
-            ),
-            width: valueOrDefault<double>(
-              valueOrDefault<String>(
-                        widget.variant,
-                        'primary',
-                      ) ==
-                      'outline'
-                  ? 1.0
-                  : 0.0,
-              0.0,
+              width: widget.variant == 'outline' ? 1.0 : 0.0,
             ),
           ),
-        ),
-        child: Stack(
-          alignment: AlignmentDirectional(0.0, 0.0),
-          children: [
-            Opacity(
-              opacity: valueOrDefault<double>(
-                valueOrDefault<bool>(
-                  widget.loading,
-                  false,
-                )
-                    ? 0.0
-                    : 1.0,
-                1.0,
-              ),
-              child: Padding(
-                padding: EdgeInsetsDirectional.fromSTEB(
-                    valueOrDefault<double>(
-                      () {
-                        if (valueOrDefault<String>(
-                              widget.size,
-                              'large',
-                            ) ==
-                            'small') {
-                          return 16.0;
-                        } else if (valueOrDefault<String>(
-                              widget.size,
-                              'large',
-                            ) ==
-                            'large') {
-                          return 32.0;
-                        } else {
-                          return 24.0;
-                        }
-                      }(),
-                      32.0,
-                    ),
-                    valueOrDefault<double>(
-                      () {
-                        if (valueOrDefault<String>(
-                              widget.size,
-                              'large',
-                            ) ==
-                            'small') {
-                          return 4.0;
-                        } else if (valueOrDefault<String>(
-                              widget.size,
-                              'large',
-                            ) ==
-                            'large') {
-                          return 16.0;
-                        } else {
-                          return 8.0;
-                        }
-                      }(),
-                      16.0,
-                    ),
-                    valueOrDefault<double>(
-                      () {
-                        if (valueOrDefault<String>(
-                              widget.size,
-                              'large',
-                            ) ==
-                            'small') {
-                          return 16.0;
-                        } else if (valueOrDefault<String>(
-                              widget.size,
-                              'large',
-                            ) ==
-                            'large') {
-                          return 32.0;
-                        } else {
-                          return 24.0;
-                        }
-                      }(),
-                      32.0,
-                    ),
-                    valueOrDefault<double>(
-                      () {
-                        if (valueOrDefault<String>(
-                              widget.size,
-                              'large',
-                            ) ==
-                            'small') {
-                          return 4.0;
-                        } else if (valueOrDefault<String>(
-                              widget.size,
-                              'large',
-                            ) ==
-                            'large') {
-                          return 16.0;
-                        } else {
-                          return 8.0;
-                        }
-                      }(),
-                      16.0,
-                    )),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    if (valueOrDefault<bool>(
-                      widget.iconPresent,
-                      false,
-                    ))
-                      widget.icon!,
-                    Text(
-                      valueOrDefault<String>(
+          child: Stack(
+            alignment: AlignmentDirectional(0.0, 0.0),
+            children: [
+              Opacity(
+                opacity: widget.loading ? 0.0 : 1.0,
+                child: Padding(
+                  padding: EdgeInsetsDirectional.fromSTEB(
+                    widget.size == 'small' ? 16.0 : (widget.size == 'large' ? 32.0 : 24.0),
+                    widget.size == 'small' ? 4.0 : (widget.size == 'large' ? 16.0 : 8.0),
+                    widget.size == 'small' ? 16.0 : (widget.size == 'large' ? 32.0 : 24.0),
+                    widget.size == 'small' ? 4.0 : (widget.size == 'large' ? 16.0 : 8.0),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (widget.iconPresent) widget.icon!,
+                      Text(
                         widget.content,
-                        'आगे बढ़ें (Continue)',
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
+                        style: FlutterFlowTheme.of(context).labelMedium.override(
+                              font: GoogleFonts.inter(
+                                fontWeight: FlutterFlowTheme.of(context).labelMedium.fontWeight,
+                                fontStyle: FlutterFlowTheme.of(context).labelMedium.fontStyle,
+                              ),
+                              color: widget.variant == 'outline'
+                                  ? FlutterFlowTheme.of(context).primaryText
+                                  : (widget.variant == 'ghost'
+                                      ? FlutterFlowTheme.of(context).primary
+                                      : FlutterFlowTheme.of(context).onPrimary),
+                              letterSpacing: 0.0,
+                              fontWeight: FlutterFlowTheme.of(context).labelMedium.fontWeight,
+                              fontStyle: FlutterFlowTheme.of(context).labelMedium.fontStyle,
+                              lineHeight: 1.4,
+                            ),
                       ),
-                      maxLines: 1,
-                      style: FlutterFlowTheme.of(context).labelMedium.override(
-                            font: GoogleFonts.inter(
-                              fontWeight: FlutterFlowTheme.of(context)
-                                  .labelMedium
-                                  .fontWeight,
-                              fontStyle: FlutterFlowTheme.of(context)
-                                  .labelMedium
-                                  .fontStyle,
-                            ),
-                            color: valueOrDefault<Color>(
-                              () {
-                                if (valueOrDefault<String>(
-                                      widget.variant,
-                                      'primary',
-                                    ) ==
-                                    'secondary') {
-                                  return FlutterFlowTheme.of(context)
-                                      .onSecondary;
-                                } else if (valueOrDefault<String>(
-                                      widget.variant,
-                                      'primary',
-                                    ) ==
-                                    'outline') {
-                                  return FlutterFlowTheme.of(context)
-                                      .primaryText;
-                                } else if (valueOrDefault<String>(
-                                      widget.variant,
-                                      'primary',
-                                    ) ==
-                                    'ghost') {
-                                  return FlutterFlowTheme.of(context).primary;
-                                } else if (valueOrDefault<String>(
-                                      widget.variant,
-                                      'primary',
-                                    ) ==
-                                    'destructive') {
-                                  return FlutterFlowTheme.of(context).onError;
-                                } else {
-                                  return FlutterFlowTheme.of(context).onPrimary;
-                                }
-                              }(),
-                              FlutterFlowTheme.of(context).onPrimary,
-                            ),
-                            letterSpacing: 0.0,
-                            fontWeight: FlutterFlowTheme.of(context)
-                                .labelMedium
-                                .fontWeight,
-                            fontStyle: FlutterFlowTheme.of(context)
-                                .labelMedium
-                                .fontStyle,
-                            lineHeight: 1.4,
-                          ),
-                      overflow: TextOverflow.clip,
-                    ),
-                    if (valueOrDefault<bool>(
-                      widget.iconEndPresent,
-                      false,
-                    ))
-                      widget.iconEnd!,
-                  ].divide(SizedBox(width: 8.0)),
+                      if (widget.iconEndPresent) widget.iconEnd!,
+                    ].divide(SizedBox(width: 8.0)),
+                  ),
                 ),
               ),
-            ),
-            if (valueOrDefault<bool>(
-              valueOrDefault<bool>(
-                widget.loading,
-                false,
-              )
-                  ? true
-                  : false,
-              false,
-            ))
-              CircularPercentIndicator(
-                percent: 0.0,
-                radius: 7.0,
-                lineWidth: 2.0,
-                animation: true,
-                animateFromLastPercent: true,
-                progressColor: valueOrDefault<Color>(
-                  () {
-                    if (valueOrDefault<String>(
-                          widget.variant,
-                          'primary',
-                        ) ==
-                        'secondary') {
-                      return FlutterFlowTheme.of(context).onSecondary;
-                    } else if (valueOrDefault<String>(
-                          widget.variant,
-                          'primary',
-                        ) ==
-                        'outline') {
-                      return FlutterFlowTheme.of(context).primaryText;
-                    } else if (valueOrDefault<String>(
-                          widget.variant,
-                          'primary',
-                        ) ==
-                        'ghost') {
-                      return FlutterFlowTheme.of(context).primary;
-                    } else if (valueOrDefault<String>(
-                          widget.variant,
-                          'primary',
-                        ) ==
-                        'destructive') {
-                      return FlutterFlowTheme.of(context).onError;
-                    } else {
-                      return FlutterFlowTheme.of(context).onPrimary;
-                    }
-                  }(),
-                  FlutterFlowTheme.of(context).onPrimary,
+              if (widget.loading)
+                CircularPercentIndicator(
+                  percent: 0.0,
+                  radius: 7.0,
+                  lineWidth: 2.0,
+                  animation: true,
+                  animateFromLastPercent: true,
+                  progressColor: FlutterFlowTheme.of(context).onPrimary,
+                  backgroundColor: FlutterFlowTheme.of(context).alternate,
                 ),
-                backgroundColor: FlutterFlowTheme.of(context).alternate,
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
