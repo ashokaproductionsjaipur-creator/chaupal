@@ -1,12 +1,8 @@
-import '/components/button/button_widget.dart';
-import '/components/role_card/role_card_widget.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
-import '/index.dart';
+import '/pages/login_screen/login_screen_widget.dart';
+import '/pages/worker_registration/worker_registration_widget.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'role_selection_model.dart';
-export 'role_selection_model.dart';
 
 class RoleSelectionWidget extends StatefulWidget {
   const RoleSelectionWidget({super.key});
@@ -19,310 +15,296 @@ class RoleSelectionWidget extends StatefulWidget {
 }
 
 class _RoleSelectionWidgetState extends State<RoleSelectionWidget> {
-  late RoleSelectionModel _model;
-
-  final scaffoldKey = GlobalKey<ScaffoldState>();
-
-  @override
-  void initState() {
-    super.initState();
-    _model = createModel(context, () => RoleSelectionModel());
-  }
-
-  @override
-  void dispose() {
-    _model.dispose();
-
-    super.dispose();
-  }
+  String selectedRole = 'owner';
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-        FocusManager.instance.primaryFocus?.unfocus();
-      },
-      child: Scaffold(
-        key: scaffoldKey,
-        backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
-        body: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: SingleChildScrollView(
-            primary: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: EdgeInsetsDirectional.fromSTEB(0.0, 40.0, 0.0, 60.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+    final theme = FlutterFlowTheme.of(context);
+    final isOwner = selectedRole == 'owner';
+
+    return Scaffold(
+      backgroundColor: theme.primaryBackground,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
                     children: [
                       Container(
-                        width: 64.0,
-                        height: 64.0,
+                        width: 46,
+                        height: 46,
                         decoration: BoxDecoration(
-                          color: FlutterFlowTheme.of(context).primaryText,
-                          borderRadius: BorderRadius.circular(12.0),
-                          shape: BoxShape.rectangle,
+                          borderRadius: BorderRadius.circular(15),
+                          color: theme.primaryText,
                         ),
-                        alignment: AlignmentDirectional(0.0, 0.0),
+                        alignment: Alignment.center,
                         child: Text(
                           'च',
-                          style:
-                              FlutterFlowTheme.of(context).bodyMedium.override(
-                                    font: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w900,
-                                      fontStyle: FlutterFlowTheme.of(context)
-                                          .bodyMedium
-                                          .fontStyle,
-                                    ),
-                                    color: FlutterFlowTheme.of(context)
-                                        .primaryBackground,
-                                    fontSize: 32.0,
-                                    letterSpacing: 0.0,
-                                    fontWeight: FontWeight.w900,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .bodyMedium
-                                        .fontStyle,
-                                    lineHeight: 1.5,
-                                  ),
+                          style: TextStyle(
+                            color: theme.primaryBackground,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
                       ),
-                      Container(
-                        height: 16.0,
-                      ),
-                      Text(
-                        'चौपाल | CHAUPAL',
-                        style: FlutterFlowTheme.of(context)
-                            .headlineMedium
-                            .override(
-                              font: GoogleFonts.inter(
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'CHAUPAL',
+                              style: TextStyle(
+                                fontSize: 20,
                                 fontWeight: FontWeight.w900,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .headlineMedium
-                                    .fontStyle,
+                                letterSpacing: 0.6,
                               ),
-                              color: FlutterFlowTheme.of(context).primaryText,
-                              letterSpacing: 0.0,
-                              fontWeight: FontWeight.w900,
-                              fontStyle: FlutterFlowTheme.of(context)
-                                  .headlineMedium
-                                  .fontStyle,
-                              lineHeight: 1.3,
                             ),
-                      ),
-                      Text(
-                        'निर्माण श्रमिक और मालिकों का डिजिटल मंच',
-                        textAlign: TextAlign.center,
-                        style: FlutterFlowTheme.of(context).bodyMedium.override(
-                              font: GoogleFonts.inter(
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontWeight,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .bodyMedium
-                                    .fontStyle,
-                              ),
-                              color: FlutterFlowTheme.of(context).secondaryText,
-                              letterSpacing: 0.0,
-                              fontWeight: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .fontWeight,
-                              fontStyle: FlutterFlowTheme.of(context)
-                                  .bodyMedium
-                                  .fontStyle,
-                              lineHeight: 1.5,
+                            Text(
+                              'काम मिले • काम मिले सही लोगों को',
+                              style: TextStyle(fontSize: 12),
                             ),
-                      ),
-                    ].divide(SizedBox(height: 8.0)),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 32.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'अपना रोल चुनें',
-                        style: FlutterFlowTheme.of(context)
-                            .titleMedium
-                            .override(
-                              font: GoogleFonts.inter(
-                                fontWeight: FontWeight.bold,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .titleMedium
-                                    .fontStyle,
-                              ),
-                              color: FlutterFlowTheme.of(context).primaryText,
-                              letterSpacing: 0.0,
-                              fontWeight: FontWeight.bold,
-                              fontStyle: FlutterFlowTheme.of(context)
-                                  .titleMedium
-                                  .fontStyle,
-                              lineHeight: 1.45,
-                            ),
-                      ),
-                      Text(
-                        'Select your role to continue',
-                        style: FlutterFlowTheme.of(context).bodySmall.override(
-                              font: GoogleFonts.inter(
-                                fontWeight: FlutterFlowTheme.of(context)
-                                    .bodySmall
-                                    .fontWeight,
-                                fontStyle: FlutterFlowTheme.of(context)
-                                    .bodySmall
-                                    .fontStyle,
-                              ),
-                              color: FlutterFlowTheme.of(context).secondaryText,
-                              letterSpacing: 0.0,
-                              fontWeight: FlutterFlowTheme.of(context)
-                                  .bodySmall
-                                  .fontWeight,
-                              fontStyle: FlutterFlowTheme.of(context)
-                                  .bodySmall
-                                  .fontStyle,
-                              lineHeight: 1.5,
-                            ),
-                      ),
-                    ].divide(SizedBox(height: 4.0)),
-                  ),
-                ),
-                InkWell(
-                  splashColor: Colors.transparent,
-                  focusColor: Colors.transparent,
-                  hoverColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                  onTap: () async {
-                    context.pushNamed(LoginScreenWidget.routeName);
-                  },
-                  child: wrapWithModel(
-                    model: _model.roleCardModel1,
-                    updateCallback: () => safeSetState(() {}),
-                    child: RoleCardWidget(
-                      icon: Icon(
-                        Icons.engineering_rounded,
-                        color: FlutterFlowTheme.of(context).primaryText,
-                        size: 40.0,
-                      ),
-                      subtitle:
-                          'मैं काम डालना चाहता हूँ (I want to post a job)',
-                      title: 'मालिक (Owner)',
-                      selected: false,
-                    ),
-                  ),
-                ),
-                wrapWithModel(
-                  model: _model.roleCardModel2,
-                  updateCallback: () => safeSetState(() {}),
-                  child: RoleCardWidget(
-                    icon: Icon(
-                      Icons.construction_rounded,
-                      color: FlutterFlowTheme.of(context).primaryText,
-                      size: 40.0,
-                    ),
-                    subtitle: 'मैं काम ढूंढना चाहता हूँ (I want to find work)',
-                    title: 'कामगार (Worker)',
-                    selected: true,
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsetsDirectional.fromSTEB(0.0, 20.0, 0.0, 0.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      wrapWithModel(
-                        model: _model.buttonModel,
-                        updateCallback: () => safeSetState(() {}),
-                        child: ButtonWidget(
-                          iconPresent: false,
-                          iconEndPresent: false,
-                          content: 'आगे बढ़ें (Continue)',
-                          variant: 'primary',
-                          size: 'large',
-                          fullWidth: true,
-                          loading: false,
-                          disabled: false,
+                          ],
                         ),
                       ),
-                      Row(
-                        mainAxisSize: MainAxisSize.max,
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.help_outline_rounded),
+                        tooltip: 'Help',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 34),
+                  Text(
+                    'चौपाल में आपका स्वागत है 👋',
+                    style: TextStyle(
+                      color: theme.primaryText,
+                      fontSize: 30,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    'अपने काम के हिसाब से शुरुआत करें',
+                    style: TextStyle(
+                      color: theme.secondaryText,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  _roleCard(
+                    context,
+                    selected: isOwner,
+                    icon: Icons.business_center_rounded,
+                    title: 'मालिक (Owner)',
+                    subtitle: 'मुझे काम पोस्ट करना है',
+                    detail: 'काम डालें और सही कामगार से जुड़ें',
+                    onTap: () => setState(() => selectedRole = 'owner'),
+                  ),
+                  const SizedBox(height: 14),
+                  _roleCard(
+                    context,
+                    selected: !isOwner,
+                    icon: Icons.construction_rounded,
+                    title: 'कामगार (Worker)',
+                    subtitle: 'मुझे काम ढूँढना है',
+                    detail: 'अपने हुनर के अनुसार आसपास के काम देखें',
+                    onTap: () => setState(() => selectedRole = 'worker'),
+                  ),
+                  const SizedBox(height: 22),
+                  Container(
+                    padding: const EdgeInsets.all(15),
+                    decoration: BoxDecoration(
+                      color: theme.secondaryBackground,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: theme.alternate),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: theme.primaryText.withValues(alpha: 0.08),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.verified_user_outlined,
+                            color: theme.primaryText,
+                            size: 21,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'सुरक्षित और verified marketplace\nSafe & verified marketplace',
+                            style: TextStyle(
+                              color: theme.primaryText,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(
+                    height: 56,
+                    child: FilledButton(
+                      onPressed: () => context.pushNamed(LoginScreenWidget.routeName),
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
-                            'सहायता के लिए संपर्क करें',
-                            style: FlutterFlowTheme.of(context)
-                                .labelSmall
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .labelSmall
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .labelSmall
-                                        .fontStyle,
-                                  ),
-                                  color: FlutterFlowTheme.of(context)
-                                      .secondaryText,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .labelSmall
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .labelSmall
-                                      .fontStyle,
-                                  lineHeight: 1.4,
-                                ),
-                          ),
-                          Container(
-                            width: 4.0,
-                            height: 4.0,
-                            decoration: BoxDecoration(
-                              color: FlutterFlowTheme.of(context).alternate,
-                              borderRadius: BorderRadius.circular(9999.0),
-                              shape: BoxShape.rectangle,
+                            isOwner ? 'Owner Login | मालिक लॉगिन' : 'Worker Login | कामगार लॉगिन',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                          Text(
-                            'v1.0.0',
-                            style: FlutterFlowTheme.of(context)
-                                .labelSmall
-                                .override(
-                                  font: GoogleFonts.inter(
-                                    fontWeight: FlutterFlowTheme.of(context)
-                                        .labelSmall
-                                        .fontWeight,
-                                    fontStyle: FlutterFlowTheme.of(context)
-                                        .labelSmall
-                                        .fontStyle,
-                                  ),
-                                  color: FlutterFlowTheme.of(context).onSurface,
-                                  letterSpacing: 0.0,
-                                  fontWeight: FlutterFlowTheme.of(context)
-                                      .labelSmall
-                                      .fontWeight,
-                                  fontStyle: FlutterFlowTheme.of(context)
-                                      .labelSmall
-                                      .fontStyle,
-                                  lineHeight: 1.4,
-                                ),
-                          ),
-                        ].divide(SizedBox(width: 16.0)),
+                          const SizedBox(width: 9),
+                          const Icon(Icons.arrow_forward_rounded, size: 20),
+                        ],
                       ),
-                    ].divide(SizedBox(height: 16.0)),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 13),
+                  OutlinedButton(
+                    onPressed: () => context.pushNamed(WorkerRegistrationWidget.routeName),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+                    child: const Text(
+                      'नया अकाउंट बनाएं  •  Create account',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Owner और Worker दोनों के लिए एक ही आसान CHAUPAL अनुभव',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: theme.secondaryText,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'v1.0.0',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: theme.secondaryText,
+                      fontSize: 10.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _roleCard(
+    BuildContext context, {
+    required bool selected,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String detail,
+    required VoidCallback onTap,
+  }) {
+    final theme = FlutterFlowTheme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: selected
+                ? theme.primaryText.withValues(alpha: 0.055)
+                : theme.secondaryBackground,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: selected ? theme.primaryText : theme.alternate,
+              width: selected ? 1.6 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: selected ? theme.primaryText : theme.primaryText.withValues(alpha: 0.07),
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: Icon(
+                  icon,
+                  color: selected ? theme.primaryBackground : theme.primaryText,
+                  size: 27,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: theme.primaryText,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: theme.primaryText,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      detail,
+                      style: TextStyle(
+                        color: theme.secondaryText,
+                        fontSize: 11.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                selected ? Icons.check_circle_rounded : Icons.circle_outlined,
+                color: selected ? theme.primaryText : theme.secondaryText,
+                size: 24,
+              ),
+            ],
           ),
         ),
       ),
