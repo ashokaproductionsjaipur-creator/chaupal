@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,6 +13,7 @@ import 'package:record/record.dart';
 
 import '/auth/custom_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
+import '/components/chaupal_app_header.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/utils/web_microphone_permission.dart';
@@ -114,20 +116,37 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (c) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(c, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(c, ImageSource.gallery),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'फोटो चुनें',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.pop(c, ImageSource.camera),
+                  icon: const Icon(Icons.camera_alt_outlined, size: 28),
+                  label: const Text('कैमरा से फोटो लें', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 58,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(c, ImageSource.gallery),
+                  icon: const Icon(Icons.photo_library_outlined, size: 28),
+                  label: const Text('गैलरी से फोटो चुनें', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -147,9 +166,6 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
     if (recording) return;
 
     try {
-      // On Chrome, request permission directly through getUserMedia from the
-      // microphone-button tap. This creates/uses the real site permission and
-      // avoids treating a missing site grant as a permanent denial.
       final allowed = kIsWeb
           ? await requestWebMicrophone()
           : await recorder.hasPermission(request: true);
@@ -159,7 +175,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Chrome microphone access नहीं दे रहा. Browser site permission और Windows microphone access check करें.',
+                'माइक्रोफोन की अनुमति नहीं मिली। कृपया अनुमति दें।',
               ),
             ),
           );
@@ -205,7 +221,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
       if (mounted) {
         setState(() => recording = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Microphone start failed: $e')),
+          SnackBar(content: Text('रिकॉर्डिंग शुरू नहीं हो सकी: $e')),
         );
       }
     }
@@ -225,7 +241,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
       if (mounted) {
         setState(() => recording = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Recording stop failed: $e')),
+          SnackBar(content: Text('रिकॉर्डिंग बंद नहीं हो सकी: $e')),
         );
       }
     }
@@ -244,7 +260,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Audio playback failed: $e')),
+          SnackBar(content: Text('ऑडियो चल नहीं सका: $e')),
         );
       }
     }
@@ -275,17 +291,17 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'सभी required fields भरें. Work Photo और Audio Note दोनों required हैं. Audio Note max 1 minute है.',
+            'कृपया सभी जरूरी जानकारी भरें। फोटो और ऑडियो भी जरूरी हैं।',
           ),
         ),
       );
       return;
     }
 
-    final price = double.tryParse(amount.text.trim().replaceAll(',', ''));
+    final price = double.tryParse(amount.text.trim());
     if (price == null || price <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Expected Amount सही दर्ज करें.')),
+        const SnackBar(content: Text('कृपया सही राशि दर्ज करें।')),
       );
       return;
     }
@@ -347,7 +363,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Job successfully posted.')),
+          const SnackBar(content: Text('जॉब सफलतापूर्वक पोस्ट हो गई।')),
         );
         context.goNamed('OwnerDashboard');
       }
@@ -363,10 +379,10 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
 
       final s = e.toString();
       final message = s.contains('posting_window_closed')
-          ? 'अभी Job Posting बंद है। अगली Posting window में try करें.'
+          ? 'अभी जॉब पोस्टिंग बंद है। अगली पोस्टिंग में कोशिश करें।'
           : s.contains('audio_note_required')
-              ? 'Audio Note जरूरी है. कृपया 1 मिनट तक की voice recording करें.'
-              : 'Job post नहीं हुई: $s';
+              ? 'ऑडियो नोट जरूरी है। कृपया 1 मिनट तक की रिकॉर्डिंग करें।'
+              : 'जॉब पोस्ट नहीं हुई: $s';
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -382,175 +398,220 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
 
     return Scaffold(
       backgroundColor: t.primaryBackground,
-      appBar: AppBar(
-        backgroundColor: t.primaryBackground,
-        foregroundColor: t.primaryText,
-        elevation: 0,
-        title: const Text('नई Job Post करें'),
-      ),
+      appBar: const ChaupalAppHeader(title: 'नई जॉब पोस्ट करें'),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
         children: [
-          _field('Job Title | जॉब का नाम', title, 'जैसे: Bathroom Tile Work'),
-          const SizedBox(height: 14),
-          DropdownButtonFormField<int>(
-            value: professionId,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: 'Job Profession | प्रोफेशन',
-              hintText: loadingProfessions
-                  ? 'Professions load हो रहे हैं...'
-                  : 'Profession चुनें',
-              border: const OutlineInputBorder(),
-              suffixIcon: loadingProfessions
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : const Icon(Icons.arrow_drop_down),
+          _sectionTitle('1. जॉब का नाम लिखें'),
+          _field(
+            'जॉब का नाम',
+            title,
+            'जैसे: बाथरूम में टाइल लगाना',
+            icon: Icons.work_outline,
+          ),
+          const SizedBox(height: 20),
+          _sectionTitle('2. काम का प्रकार चुनें'),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: t.secondaryBackground,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: t.alternate, width: 1.5),
             ),
-            items: professions
-                .map(
-                  (p) => DropdownMenuItem<int>(
-                    value: (p['id'] as num).toInt(),
-                    child: Text(
-                      '${p['display_name']}',
-                      overflow: TextOverflow.ellipsis,
+            child: DropdownButtonFormField<int>(
+              value: professionId,
+              isExpanded: true,
+              icon: const Icon(Icons.arrow_drop_down, size: 32),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                labelText: 'काम का प्रकार',
+                labelStyle: TextStyle(fontSize: 17),
+              ),
+              items: professions
+                  .map(
+                    (p) => DropdownMenuItem<int>(
+                      value: (p['id'] as num).toInt(),
+                      child: Text(
+                        '${p['display_name']}',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
                     ),
-                  ),
-                )
-                .toList(),
-            onChanged: loadingProfessions || professions.isEmpty
-                ? null
-                : (v) => setState(() => professionId = v),
+                  )
+                  .toList(),
+              onChanged: loadingProfessions || professions.isEmpty
+                  ? null
+                  : (v) => setState(() => professionId = v),
+              hint: Text(
+                loadingProfessions ? 'काम की सूची लोड हो रही है...' : 'काम चुनें',
+                style: const TextStyle(fontSize: 17),
+              ),
+            ),
           ),
           if (!loadingProfessions && professions.isEmpty)
             const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text('Profession list उपलब्ध नहीं है. Please refresh.'),
+              padding: EdgeInsets.only(top: 8),
+              child: Text('काम की सूची उपलब्ध नहीं है। कृपया दोबारा कोशिश करें।'),
             ),
-          const SizedBox(height: 14),
-          ListTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: t.alternate),
+          const SizedBox(height: 20),
+          _sectionTitle('3. काम की फोटो दें'),
+          SizedBox(
+            width: double.infinity,
+            height: 64,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              onPressed: _pickImage,
+              icon: Icon(workImage == null ? Icons.camera_alt_outlined : Icons.check_circle_outline, size: 30),
+              label: Text(
+                workImage == null ? 'फोटो लें / चुनें' : 'फोटो चुन ली गई है ✓',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
             ),
-            title: Text(
-              workImage == null
-                  ? 'Work Photo | काम की फोटो'
-                  : 'Work Photo selected ✓',
-            ),
-            subtitle: const Text('Camera या Gallery • Required'),
-            trailing: const Icon(Icons.camera_alt_outlined),
-            onTap: _pickImage,
           ),
-          const SizedBox(height: 14),
+          if (workImage != null) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.network(
+                workImage!.path,
+                height: 190,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 100,
+                  alignment: Alignment.center,
+                  child: const Text('फोटो चुनी गई है ✓'),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          _sectionTitle('4. काम की जानकारी बोलकर बताएं'),
           Card(
             color: t.secondaryBackground,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: t.alternate),
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(color: t.alternate, width: 1.5),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: t.alternate),
-                    ),
-                    child: const Text(
-                      '⚠️ जरूरी सूचना | Important\nअपने काम और लागत के पैसों की जानकारी Audio Note में ज़रूर रिकॉर्ड करें।\nWorker आपके काम की जानकारी Audio Note से समझेगा।',
-                      textAlign: TextAlign.center,
-                    ),
+                  const Text(
+                    'काम क्या है, कितना काम है और पैसों की जानकारी बोलकर बताएं।',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '${seconds.toString().padLeft(2, '0')} / 60 सेकंड',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Audio Note | काम की जानकारी (Required • max 1 min)',
+                  SizedBox(
+                    width: double.infinity,
+                    height: 62,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: recording ? const Color(0xFFDC2626) : const Color(0xFFF59E0B),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: recording ? _stopRecording : _startRecording,
+                      icon: Icon(recording ? Icons.stop_circle_outlined : Icons.mic_none_outlined, size: 32),
+                      label: Text(
+                        recording ? 'रिकॉर्डिंग बंद करें' : 'ऑडियो रिकॉर्ड करें',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                  if (audioPath != null && !recording) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 56,
+                            child: OutlinedButton.icon(
+                              onPressed: _playRecording,
+                              icon: const Icon(Icons.play_arrow_outlined, size: 30),
+                              label: const Text('ऑडियो सुनें', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
                         ),
-                      ),
-                      Text('${seconds.toString().padLeft(2, '0')}/60'),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    recording
-                        ? 'Recording चल रही है... Stop दबाकर save करें.'
-                        : audioPath == null
-                            ? 'Mic दबाएँ — Chrome microphone permission माँगेगा.'
-                            : 'Audio ready ✓',
-                    textAlign: TextAlign.center,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        tooltip: recording ? 'Stop recording' : 'Start recording',
-                        onPressed: recording ? _stopRecording : _startRecording,
-                        icon: Icon(
-                          recording
-                              ? Icons.stop_circle_outlined
-                              : Icons.mic_none_outlined,
-                          size: 36,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: SizedBox(
+                            height: 56,
+                            child: OutlinedButton.icon(
+                              onPressed: _startRecording,
+                              icon: const Icon(Icons.refresh_outlined, size: 28),
+                              label: const Text('दोबारा बोलें', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                            ),
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        tooltip: 'Play recording',
-                        onPressed: audioPath == null || recording
-                            ? null
-                            : _playRecording,
-                        icon: const Icon(Icons.play_arrow_outlined, size: 32),
-                      ),
-                      IconButton(
-                        tooltip: 'Record again',
-                        onPressed: audioPath == null || recording
-                            ? null
-                            : _startRecording,
-                        icon: const Icon(Icons.refresh_outlined, size: 28),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 20),
+          _sectionTitle('5. अतिरिक्त जानकारी'),
           _field(
-            'Additional Details | अतिरिक्त जानकारी',
+            'अतिरिक्त जानकारी (जरूरी नहीं)',
             details,
-            'Optional',
+            'अगर कुछ और बताना हो तो यहां लिखें',
+            icon: Icons.notes_outlined,
             maxLines: 4,
           ),
-          const SizedBox(height: 14),
-          _field(
-            'Expected Amount | अनुमानित राशि',
-            amount,
-            '₹ Amount',
-            keyboard: TextInputType.number,
+          const SizedBox(height: 20),
+          _sectionTitle('6. कितने रुपये देने हैं?'),
+          TextField(
+            controller: amount,
+            keyboardType: TextInputType.number,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(9),
+            ],
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+            decoration: InputDecoration(
+              labelText: 'राशि',
+              hintText: 'जैसे 10000',
+              prefixText: '₹ ',
+              prefixStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+              labelStyle: const TextStyle(fontSize: 17),
+              hintStyle: const TextStyle(fontSize: 17),
+              filled: true,
+              fillColor: t.secondaryBackground,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: t.alternate, width: 1.5),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: t.alternate, width: 1.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+              ),
+            ),
           ),
-          const SizedBox(height: 14),
-          ListTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: t.alternate),
-            ),
-            title: Text(
-              jobDate == null
-                  ? 'Job Date | तारीख चुनें'
-                  : '${jobDate!.day}/${jobDate!.month}/${jobDate!.year}',
-            ),
-            trailing: const Icon(Icons.calendar_today_outlined),
+          const SizedBox(height: 20),
+          _sectionTitle('7. काम की तारीख चुनें'),
+          _largeChoiceButton(
+            icon: Icons.calendar_month_outlined,
+            color: const Color(0xFF2563EB),
+            title: jobDate == null
+                ? 'तारीख चुनें'
+                : '${jobDate!.day.toString().padLeft(2, '0')}/${jobDate!.month.toString().padLeft(2, '0')}/${jobDate!.year}',
             onTap: () async {
               final d = await showDatePicker(
                 context: context,
@@ -561,18 +622,12 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
               if (d != null) setState(() => jobDate = d);
             },
           ),
-          const SizedBox(height: 10),
-          ListTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-              side: BorderSide(color: t.alternate),
-            ),
-            title: Text(
-              startTime == null
-                  ? 'Job Start Time | समय चुनें'
-                  : startTime!.format(context),
-            ),
-            trailing: const Icon(Icons.access_time_outlined),
+          const SizedBox(height: 14),
+          _sectionTitle('8. काम शुरू होने का समय चुनें'),
+          _largeChoiceButton(
+            icon: Icons.access_time_outlined,
+            color: const Color(0xFF2563EB),
+            title: startTime == null ? 'समय चुनें' : startTime!.format(context),
             onTap: () async {
               final d = await showTimePicker(
                 context: context,
@@ -581,15 +636,59 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
               if (d != null) setState(() => startTime = d);
             },
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
           SizedBox(
-            height: 52,
-            child: FilledButton(
+            width: double.infinity,
+            height: 68,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
               onPressed: saving ? null : _submit,
-              child: Text(saving ? 'Posting...' : 'Post Job | जॉब पोस्ट करें'),
+              icon: saving
+                  ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
+                  : const Icon(Icons.check_circle_outline, size: 32),
+              label: Text(
+                saving ? 'जॉब पोस्ट हो रही है...' : 'जॉब पोस्ट करें',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
+  Widget _largeChoiceButton({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 64,
+      child: FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        onPressed: onTap,
+        icon: Icon(icon, size: 30),
+        label: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
       ),
     );
   }
@@ -598,17 +697,35 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
     String label,
     TextEditingController controller,
     String hint, {
-    TextInputType? keyboard,
+    IconData? icon,
     int maxLines = 1,
   }) {
+    final t = FlutterFlowTheme.of(context);
     return TextField(
       controller: controller,
-      keyboardType: keyboard,
       maxLines: maxLines,
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        border: const OutlineInputBorder(),
+        prefixIcon: icon == null ? null : Icon(icon, size: 28),
+        labelStyle: const TextStyle(fontSize: 17),
+        hintStyle: const TextStyle(fontSize: 16),
+        filled: true,
+        fillColor: t.secondaryBackground,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: t.alternate, width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: t.alternate, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+        ),
       ),
     );
   }
