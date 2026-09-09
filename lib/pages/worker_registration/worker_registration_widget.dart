@@ -58,7 +58,11 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
     try {
       final response=await http.post(Uri.parse('https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/chaupal-register'),headers:const {'Content-Type':'application/json'},body:jsonEncode({'username':u,'password':p,'role':role,'full_name':name.text.trim(),'mobile_number':m}));
       dynamic body;try{body=jsonDecode(response.body);}catch(_){body=null;}
-      if(response.statusCode<200||response.statusCode>=300||body is! Map||body['ok']!=true)throw Exception(body is Map&&body['message'] is String?body['message']:'Account could not be created.');
+      if(response.statusCode<200||response.statusCode>=300||body is! Map||body['ok']!=true){
+        final code=body is Map&&body['code'] is String?body['code']: 'http_${response.statusCode}';
+        final message=body is Map&&body['message'] is String?body['message']:'Account could not be created.';
+        throw Exception('$code: $message');
+      }
       final access=body['access_token']?.toString(),refresh=body['refresh_token']?.toString(),uid=body['user_id']?.toString();
       if(access==null||refresh==null||uid==null)throw Exception('Registration session could not be created.');
       await SupaFlow.client.auth.setSession(refresh);
