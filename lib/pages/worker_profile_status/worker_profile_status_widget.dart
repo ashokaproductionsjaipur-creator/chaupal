@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -22,17 +21,9 @@ class _WorkerProfileStatusWidgetState extends State<WorkerProfileStatusWidget> {
     return Scaffold(backgroundColor: t.primaryBackground, appBar: AppBar(backgroundColor: t.primaryBackground, foregroundColor: t.primaryText, elevation: 0, title: const Text('Worker Profile | कामगार')), body: FutureBuilder<Map<String, dynamic>>(future: future, builder: (context, s) {
       if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
       if (s.hasError) return const Center(child: Text('Profile load नहीं हो सका.'));
-      final d = s.data ?? {};
-      final u = Map<String, dynamic>.from((d['user'] as Map?) ?? {});
-      final w = Map<String, dynamic>.from((d['worker'] as Map?) ?? {});
-      final p = Map<String, dynamic>.from((d['profession'] as Map?) ?? {});
-      final l = Map<String, dynamic>.from((d['location'] as Map?) ?? {});
-      final status = '${w['verification_status'] ?? 'pending'}'.toLowerCase();
-      final approved = status == 'approved';
+      final d = s.data ?? {}; final u = Map<String, dynamic>.from((d['user'] as Map?) ?? {}); final w = Map<String, dynamic>.from((d['worker'] as Map?) ?? {}); final p = Map<String, dynamic>.from((d['profession'] as Map?) ?? {}); final l = Map<String, dynamic>.from((d['location'] as Map?) ?? {}); final status = '${w['verification_status'] ?? 'pending'}'.toLowerCase(); final approved = status == 'approved';
       return ListView(padding: const EdgeInsets.all(16), children: [
-        Card(color: t.secondaryBackground, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: t.alternate)), child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-          _ProfileAvatar(path: u['profile_photo']?.toString(), radius: 34), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${u['full_name'] ?? ''}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)), const SizedBox(height: 6), Text('${u['mobile_number'] ?? ''}'), Text('${p['display_name'] ?? w['other_profession'] ?? ''} • ${l['display_name'] ?? ''}')]))
-        ]))),
+        Card(color: t.secondaryBackground, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: t.alternate)), child: Padding(padding: const EdgeInsets.all(16), child: Row(children: [_ProfileAvatar(path: u['profile_photo']?.toString(), radius: 34), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${u['full_name'] ?? ''}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)), const SizedBox(height: 6), Text('${u['mobile_number'] ?? ''}'), Text('${p['display_name'] ?? w['other_profession'] ?? ''} • ${l['display_name'] ?? ''}')]))]))),
         const SizedBox(height: 14), Card(color: t.secondaryBackground, elevation: 0, child: Padding(padding: const EdgeInsets.all(18), child: Text('Verification: ${status.toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.w700)))),
         const SizedBox(height: 14), Card(color: t.secondaryBackground, elevation: 0, child: Padding(padding: const EdgeInsets.all(18), child: Text(approved ? 'आपका Worker Account verified है। अब आप matching Jobs देख और Request भेज सकते हैं.' : status == 'rejected' ? 'आपका verification reject हुआ है। Support से संपर्क करें.' : 'आपका Account अभी Verification में है। Approval मिलने के बाद आप Job देख और Accept कर सकेंगे.'))),
         if (approved) ...[const SizedBox(height: 16), SizedBox(height: 50, child: FilledButton(onPressed: () => context.goNamed(WorkerJobFeedWidget.routeName), child: const Text('View Matching Jobs | Jobs देखें')))],
@@ -43,16 +34,10 @@ class _WorkerProfileStatusWidgetState extends State<WorkerProfileStatusWidget> {
 
 class _ProfileAvatar extends StatelessWidget {
   const _ProfileAvatar({required this.path, required this.radius});
-  final String? path;
-  final double radius;
+  final String? path; final double radius;
   @override Widget build(BuildContext context) {
     if (path == null || path!.isEmpty) return CircleAvatar(radius: radius, child: const Icon(Icons.person, size: 34));
-    return FutureBuilder<Uint8List>(
-      future: SupaFlow.client.storage.from('profile-media').download(path!),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) return CircleAvatar(radius: radius, backgroundImage: MemoryImage(snapshot.data!));
-        return CircleAvatar(radius: radius, child: snapshot.hasError ? const Icon(Icons.person, size: 34) : const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)));
-      },
-    );
+    final url = SupaFlow.client.storage.from('profile-media').getPublicUrl(path!);
+    return CircleAvatar(radius: radius, backgroundImage: NetworkImage(url), onBackgroundImageError: (_, __) {});
   }
 }
