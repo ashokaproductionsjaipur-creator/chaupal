@@ -188,43 +188,65 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
 
   Widget _jobCard(FlutterFlowTheme t, Map<String, dynamic> j) {
     final count = (j['request_count'] as num?)?.toInt() ?? 0;
+    final photo = '${j['work_photo'] ?? ''}'.trim();
     return Card(
       color: t.secondaryBackground,
       elevation: 2,
+      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: t.alternate, width: 1.2)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
         onTap: () => _openJob(j),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Expanded(child: Text('${j['title'] ?? '-'}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900))),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(color: count > 0 ? const Color(0xFF16A34A) : const Color(0xFF64748B), borderRadius: BorderRadius.circular(22)),
-                child: Text('$count अनुरोध', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (photo.isNotEmpty)
+            FutureBuilder<String?>(
+              future: _signed(photo),
+              builder: (context, s) {
+                if (s.connectionState != ConnectionState.done) {
+                  return const SizedBox(height: 170, child: Center(child: CircularProgressIndicator()));
+                }
+                if (!s.hasData || s.data == null) {
+                  return Container(height: 120, width: double.infinity, alignment: Alignment.center, child: const Icon(Icons.image_not_supported_outlined, size: 42));
+                }
+                return Image.network(
+                  s.data!,
+                  height: 190,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(height: 120, width: double.infinity, alignment: Alignment.center, child: const Icon(Icons.image_not_supported_outlined, size: 42)),
+                );
+              },
+            ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text('${j['title'] ?? '-'}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(color: count > 0 ? const Color(0xFF16A34A) : const Color(0xFF64748B), borderRadius: BorderRadius.circular(22)),
+                  child: Text('$count अनुरोध', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                ),
+              ]),
+              const SizedBox(height: 9),
+              Text('काम: ${j['profession_name'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 5),
+              Text('राशि: ₹${j['amount'] ?? '-'}   •   चौपाल: ${j['location_name'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 5),
+              Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 15)),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
+                  onPressed: () => _openJob(j),
+                  icon: const Icon(Icons.people_alt_outlined, size: 26),
+                  label: Text(count > 0 ? 'कामगार अनुरोध देखें' : 'जॉब खोलें', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                ),
               ),
             ]),
-            const SizedBox(height: 9),
-            Text('काम: ${j['profession_name'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 5),
-            Text('राशि: ₹${j['amount'] ?? '-'}   •   चौपाल: ${j['location_name'] ?? '-'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 5),
-            Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 15)),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white),
-                onPressed: () => _openJob(j),
-                icon: const Icon(Icons.people_alt_outlined, size: 26),
-                label: Text(count > 0 ? 'कामगार अनुरोध देखें' : 'जॉब खोलें', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              ),
-            ),
-          ]),
-        ),
+          ),
+        ]),
       ),
     );
   }
@@ -274,6 +296,7 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
   }
 
   Widget _jobSummary(FlutterFlowTheme t, Map<String, dynamic> j) {
+    final photo = '${j['work_photo'] ?? ''}'.trim();
     return Card(
       color: t.secondaryBackground,
       elevation: 1,
@@ -287,12 +310,15 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
           Text('राशि: ₹${j['amount'] ?? '-'}   •   चौपाल: ${j['location_name'] ?? '-'}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 16)),
           if ('${j['description'] ?? ''}'.trim().isNotEmpty) ...[const SizedBox(height: 7), Text('${j['description']}', style: const TextStyle(fontSize: 15))],
-          if ('${j['work_photo'] ?? ''}'.trim().isNotEmpty) ...[
+          if (photo.isNotEmpty) ...[
             const SizedBox(height: 12),
-            FutureBuilder<String?>(future: _signed('${j['work_photo']}'), builder: (_, s) {
-              if (!s.hasData) return const SizedBox(height: 130, child: Center(child: CircularProgressIndicator()));
-              return ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(s.data!, height: 180, width: double.infinity, fit: BoxFit.cover));
-            }),
+            FutureBuilder<String?>(
+              future: _signed(photo),
+              builder: (_, s) {
+                if (!s.hasData || s.data == null) return const SizedBox(height: 130, child: Center(child: CircularProgressIndicator()));
+                return ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(s.data!, height: 180, width: double.infinity, fit: BoxFit.cover));
+              },
+            ),
           ],
           if ('${j['audio_note'] ?? ''}'.trim().isNotEmpty) ...[
             const SizedBox(height: 10),
