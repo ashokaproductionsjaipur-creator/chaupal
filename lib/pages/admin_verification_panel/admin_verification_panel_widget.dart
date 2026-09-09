@@ -31,7 +31,9 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
     final workerId = w['user_id']?.toString();
     if (workerId == null || workerId.isEmpty || _busyWorkers.contains(workerId)) return;
 
-    setState(() => _busyWorkers.add(workerId));
+    setState(() {
+      _busyWorkers.add(workerId);
+    });
     try {
       await SupaFlow.client.rpc(
         'review_worker_verification',
@@ -50,13 +52,16 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                 ? 'कामगार को मंजूरी मिल गई।'
                 : status == 'rejected'
                     ? 'कामगार को अस्वीकार कर दिया गया।'
-                    : 'और जानकारी मांगी गई है।',
+                    : 'और जानकारी मांगी गई है.',
           ),
         ),
       );
 
       final next = _load();
-      setState(() => future = next);
+      if (!mounted) return;
+      setState(() {
+        future = next;
+      });
       await next;
     } catch (e) {
       if (mounted) {
@@ -65,7 +70,11 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
         );
       }
     } finally {
-      if (mounted) setState(() => _busyWorkers.remove(workerId));
+      if (mounted) {
+        setState(() {
+          _busyWorkers.remove(workerId);
+        });
+      }
     }
   }
 
@@ -122,7 +131,9 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
           return RefreshIndicator(
             onRefresh: () async {
               final next = _load();
-              setState(() => future = next);
+              setState(() {
+                future = next;
+              });
               await next;
             },
             child: ListView.separated(
@@ -220,7 +231,7 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFDC2626), side: const BorderSide(color: Color(0xFFDC2626), width: 2)),
                                   onPressed: busy ? null : () => _review(w, 'rejected'),
-                                  child: const Text('अस्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                                  child: const Text('अस्वीकार करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                                 ),
                               ),
                             ),
