@@ -14,6 +14,7 @@ import '/auth/custom_auth/auth_util.dart';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/utils/web_microphone_permission.dart';
 
 class CreateJobPostWidget extends StatefulWidget {
   const CreateJobPostWidget({super.key});
@@ -67,8 +68,6 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
   Future<void> _loadMasters() async {
     setState(() => loadingProfessions = true);
 
-    // Load professions independently. A failure reading the owner's
-    // location must never prevent the profession dropdown from loading.
     try {
       final rows = await SupaFlow.client
           .from('professions')
@@ -95,7 +94,6 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
       }
     }
 
-    // Location is a separate concern.
     try {
       final uid = currentUserUid;
       final user = await SupaFlow.client
@@ -109,9 +107,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
           locationId = value is num ? value.toInt() : null;
         });
       }
-    } catch (_) {
-      // Location is still required at submit time; keep this silent here.
-    }
+    } catch (_) {}
   }
 
   Future<void> _pickImage() async {
@@ -151,15 +147,19 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
     if (recording) return;
 
     try {
-      // record 6.2 supports requesting permission explicitly. On Chrome this
-      // invokes the browser microphone permission from the user's tap.
-      final allowed = await recorder.hasPermission(request: true);
+      // On Chrome, request permission directly through getUserMedia from the
+      // microphone-button tap. This creates/uses the real site permission and
+      // avoids treating a missing site grant as a permanent denial.
+      final allowed = kIsWeb
+          ? await requestWebMicrophone()
+          : await recorder.hasPermission(request: true);
+
       if (!allowed) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Microphone permission denied. Chrome address bar में microphone Allow करें और फिर दोबारा tap करें.',
+                'Chrome microphone access नहीं दे रहा. Browser site permission और Windows microphone access check करें.',
               ),
             ),
           );
@@ -169,8 +169,6 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
 
       final String path;
       if (kIsWeb) {
-        // Web record requires an empty path; the plugin returns a browser blob
-        // URL from stop(). WAV is broadly supported by the web recorder.
         path = '';
       } else {
         final dir = await getTemporaryDirectory();
@@ -254,8 +252,6 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
 
   Future<Uint8List> _readRecordedAudio(String path) async {
     if (kIsWeb) {
-      // On web record returns a blob URL; fetch its bytes before uploading to
-      // Supabase Storage.
       final response = await http.get(Uri.parse(path));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception('Recorded audio could not be read from browser.');
