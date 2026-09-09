@@ -23,21 +23,53 @@ class _AdminVerificationPanelWidgetState extends State<AdminVerificationPanelWid
   }
   @override Widget build(BuildContext context) {
     final t = FlutterFlowTheme.of(context);
-    return Scaffold(backgroundColor: t.primaryBackground, appBar: AppBar(backgroundColor: t.primaryBackground, foregroundColor: t.primaryText, elevation: 0, title: const Text('Worker Verification | Admin')), body: FutureBuilder<List<Map<String, dynamic>>>(future: future, builder: (context, s) {
-      if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
-      if (s.hasError) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Admin access required or verification data unavailable.')));
-      final rows = s.data ?? [];
-      if (rows.isEmpty) return const Center(child: Text('No pending worker verification.'));
-      return RefreshIndicator(onRefresh: () async { setState(() => future = _load()); await future; }, child: ListView.separated(padding: const EdgeInsets.all(16), itemCount: rows.length, separatorBuilder: (_, __) => const SizedBox(height: 14), itemBuilder: (c, i) {
-        final w = rows[i];
-        return Card(color: t.secondaryBackground, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: t.alternate)), child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [_ProfileAvatar(path: w['profile_photo']?.toString(), radius: 32), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${w['full_name']}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)), const SizedBox(height: 6), Text('${w['mobile_number']} • ${w['username']}')]))]),
-          const SizedBox(height: 8), Text('${w['profession_name'] ?? 'Other Profession'} • ${w['location_name'] ?? ''}'), const SizedBox(height: 8), Text('Status: ${w['verification_status']}'), Text('Aadhaar: ${w['aadhaar_number'] ?? ''}'), const SizedBox(height: 10),
-          Row(children: [OutlinedButton(onPressed: () => _view('aadhaar-private', w['aadhaar_photo'] as String?), child: const Text('Aadhaar Photo')), const SizedBox(width: 8), OutlinedButton(onPressed: () => _view('worker-verification', w['live_verification_photo'] as String?), child: const Text('Live Photo'))]),
-          const SizedBox(height: 12), Row(children: [Expanded(child: FilledButton(onPressed: () => _review(w, 'approved'), child: const Text('Approve'))), const SizedBox(width: 8), Expanded(child: OutlinedButton(onPressed: () => _review(w, 'more_info'), child: const Text('More Info'))), const SizedBox(width: 8), Expanded(child: OutlinedButton(onPressed: () => _review(w, 'rejected'), child: const Text('Reject')))])
-        ]));
-      }));
-    }));
+    return Scaffold(
+      backgroundColor: t.primaryBackground,
+      appBar: AppBar(backgroundColor: t.primaryBackground, foregroundColor: t.primaryText, elevation: 0, title: const Text('Worker Verification | Admin')),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: future,
+        builder: (context, s) {
+          if (s.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+          if (s.hasError) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('Admin access required or verification data unavailable.')));
+          final rows = s.data ?? [];
+          if (rows.isEmpty) return const Center(child: Text('No pending worker verification.'));
+          return RefreshIndicator(
+            onRefresh: () async { setState(() => future = _load()); await future; },
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: rows.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 14),
+              itemBuilder: (c, i) {
+                final w = rows[i];
+                return Card(
+                  color: t.secondaryBackground,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: t.alternate)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [_ProfileAvatar(path: w['profile_photo']?.toString(), radius: 32), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${w['full_name']}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800)), const SizedBox(height: 6), Text('${w['mobile_number']} • ${w['username']}')]))]),
+                        const SizedBox(height: 8),
+                        Text('${w['profession_name'] ?? 'Other Profession'} • ${w['location_name'] ?? ''}'),
+                        const SizedBox(height: 8),
+                        Text('Status: ${w['verification_status']}'),
+                        Text('Aadhaar: ${w['aadhaar_number'] ?? ''}'),
+                        const SizedBox(height: 10),
+                        Row(children: [OutlinedButton(onPressed: () => _view('aadhaar-private', w['aadhaar_photo'] as String?), child: const Text('Aadhaar Photo')), const SizedBox(width: 8), OutlinedButton(onPressed: () => _view('worker-verification', w['live_verification_photo'] as String?), child: const Text('Live Photo'))]),
+                        const SizedBox(height: 12),
+                        Row(children: [Expanded(child: FilledButton(onPressed: () => _review(w, 'approved'), child: const Text('Approve'))), const SizedBox(width: 8), Expanded(child: OutlinedButton(onPressed: () => _review(w, 'more_info'), child: const Text('More Info'))), const SizedBox(width: 8), Expanded(child: OutlinedButton(onPressed: () => _review(w, 'rejected'), child: const Text('Reject')))]),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
