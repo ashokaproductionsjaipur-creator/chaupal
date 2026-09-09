@@ -70,6 +70,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
     FFRoute(name: WorkerProfileStatusWidget.routeName, path: WorkerProfileStatusWidget.routePath, requireAuth: true, builder: (context, params) => WorkerProfileStatusWidget()),
     FFRoute(name: AdminVerificationPanelWidget.routeName, path: AdminVerificationPanelWidget.routePath, requireAuth: true, builder: (context, params) => AdminVerificationPanelWidget()),
     FFRoute(name: JobHistoryArchiveWidget.routeName, path: JobHistoryArchiveWidget.routePath, requireAuth: true, builder: (context, params) => JobHistoryArchiveWidget()),
+    FFRoute(name: NotificationsWidget.routeName, path: NotificationsWidget.routePath, requireAuth: true, builder: (context, params) => NotificationsWidget()),
   ].map((r) => r.toRoute(appStateNotifier)).toList(),
 );
 
