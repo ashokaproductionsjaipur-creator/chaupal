@@ -7,7 +7,7 @@ marker = "  Widget _jobCard(FlutterFlowTheme t, Map<String, dynamic> j) {"
 if marker not in s:
     raise SystemExit('job card marker not found')
 
-helper_marker = "  Widget _requestPage(FlutterFlowTheme t, Map<String, dynamic> j) {"
+helper_marker = "  Widget _requestPage(FlutterFlowTheme t) {"
 if helper_marker not in s:
     raise SystemExit('request page marker not found')
 
