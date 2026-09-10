@@ -19,10 +19,14 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
   late Future<List<Map<String, dynamic>>> requestsFuture;
   final player = AudioPlayer();
   bool busy = false;
+  bool audioPlaying = false;
 
   @override
   void initState() {
     super.initState();
+    player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => audioPlaying = false);
+    });
     jobsFuture = _loadJobs();
     requestsFuture = Future.value(<Map<String, dynamic>>[]);
   }
@@ -101,11 +105,34 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
   }
 
   Future<void> _playAudio(String path) async {
+    if (audioPlaying) {
+      try {
+        await player.stop();
+      } finally {
+        if (mounted) setState(() => audioPlaying = false);
+      }
+      return;
+    }
     final url = await _signedJob(path);
-    if (url == null) return;
+    if (url == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ऑडियो लोड नहीं हो पाया।')),
+        );
+      }
+      return;
+    }
     try {
       await player.play(UrlSource(url));
-    } catch (_) {}
+      if (mounted) setState(() => audioPlaying = true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => audioPlaying = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ऑडियो चल नहीं पाया: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _accept(Map<String, dynamic> r) async {
@@ -294,12 +321,12 @@ class _JobRequestManagementWidgetState extends State<JobRequestManagementWidget>
               height: 42,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF16A34A),
-                  side: const BorderSide(color: Color(0xFF16A34A), width: 1.5),
+                  foregroundColor: audioPlaying ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                  side: BorderSide(color: audioPlaying ? const Color(0xFFDC2626) : const Color(0xFF16A34A), width: 1.5),
                 ),
                 onPressed: () => _playAudio(audio),
-                icon: const Icon(Icons.play_arrow_outlined, size: 24),
-                label: const Text('सुनें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+                icon: Icon(audioPlaying ? Icons.stop_circle_outlined : Icons.play_arrow_outlined, size: 24),
+                label: Text(audioPlaying ? 'रोकें' : 'ऑडियो सुनें', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
               ),
             )
           else
