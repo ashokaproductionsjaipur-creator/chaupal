@@ -8,7 +8,6 @@ $startMarker = '  Future<void> _showPendingConfirmation() async {'
 $endMarker = '  Widget _dealDetail(String icon, String label, String value) {'
 $start = $s.IndexOf($startMarker, [StringComparison]::Ordinal)
 $end = $s.IndexOf($endMarker, [StringComparison]::Ordinal)
-
 if ($start -lt 0) { throw 'Could not find _showPendingConfirmation method.' }
 if ($end -lt 0 -or $end -le $start) { throw 'Could not find confirmation method boundary.' }
 
@@ -75,8 +74,16 @@ $newMethod = @'
                                 future: _signed('${j['work_photo'] ?? ''}'),
                                 builder: (context, snap) {
                                   if (snap.hasData) {
-                                    return Image.network(snap.data!, height: 90, width: double.infinity, fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const SizedBox(height: 70, child: Center(child: Icon(Icons.image_not_supported, size: 34))));
+                                    return Image.network(
+                                      snap.data!,
+                                      height: 90,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const SizedBox(
+                                        height: 70,
+                                        child: Center(child: Icon(Icons.image_not_supported, size: 34)),
+                                      ),
+                                    );
                                   }
                                   return const SizedBox(height: 70, child: Center(child: CircularProgressIndicator()));
                                 },
@@ -101,7 +108,7 @@ $newMethod = @'
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(color: const Color(0xFFFFFDE7), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFFFD54F), width: 2)),
                       child: const Text(
-                        '\u{0906}\u{092A}\u{0928}\u{0947} \u{092E}\u{093E}\u{0932}\u{093F}\u{0915} \u{0938}\u{0947} \u{0907}\u{0938} \u{0915}\u{093E}\u{092E} \u{0915}\u{0947} \u{092C}\u{093E}\u{0930}\u{0947} \u{092E}\u{0947}\u{0902} \u{092B}\u{094B}\u{0928} \u{092A}\u{0930} \u{092C}\u{093E}\u{0924} \u{0915}\u{0930} \u{0932}\u{0940} \u{0939}\u{0948} \u{0914}\u{0930} \u{0906}\u{092A}\u{0915}\u{0947} \u{092C}\u{0940}\u{091A} \u{0930}\u{0947}\u{091F} \u{092D}\u{0940} \u{0924}\u{092F} \u{0939}\u{094B} \u{0917}\u{0908} \u{0939}\u{0948}\u{0964}\n\n\u{0905}\u{0917}\u{0930} \u{0906}\u{092A} \u{0907}\u{0938} \u{0938}\u{094C}\u{0926}\u{0947} \u{0915}\u{094B} \u{092A}\u{0915}\u{094D}\u{0915}\u{093E} \u{0915}\u{0930}\u{0928}\u{093E} \u{091A}\u{093E}\u{0939}\u{0924}\u{0947} \u{0939}\u{0948}\u{0902} \u{0924}\u{094B} \u{0928}\u{0940}\u{091A}\u{0947} \u{0926}\u{093F}\u{090F} \u{0917}\u{090F} \u{201C}\u{0938}\u{094C}\u{0926}\u{093E} \u{092A}\u{0915}\u{094D}\u{0915}\u{093E} \u{0915}\u{0930}\u{0947}\u{0902}\u{201D} \u{092C}\u{091F}\u{0928} \u{0915}\u{094B} \u{0926}\u{092C}\u{093E}\u{090F}\u{0901} \u{0964}',
+                        '\u{0906}\u{092A}\u{0928}\u{0947} \u{092E}\u{093E}\u{0932}\u{093F}\u{0915} \u{0938}\u{0947} \u{0907}\u{0938} \u{0915}\u{093E}\u{092E} \u{0915}\u{0947} \u{092C}\u{093E}\u{0930}\u{0947} \u{092E}\u{0947}\u{0902} \u{092B}\u{094B}\u{0928} \u{092A}\u{0930} \u{092C}\u{093E}\u{0924} \u{0915}\u{0930} \u{0932}\u{0940} \u{0939}\u{0948} \u{0914}\u{0930} \u{0906}\u{092A}\u{0915}\u{0947} \u{092C}\u{0940}\u{091A} \u{0930}\u{0947}\u{091F} \u{092D}\u{0940} \u{0924}\u{092F} \u{0939}\u{094B}\u{0917}\u{0908} \u{0939}\u{0948}\u{0964}\n\n\u{0905}\u{0917}\u{0930} \u{0906}\u{092A} \u{0907}\u{0938} \u{0938}\u{094C}\u{0926}\u{0947} \u{0915}\u{094B} \u{092A}\u{0915}\u{0915}\u{093E} \u{0915}\u{0930}\u{0928}\u{093E} \u{091A}\u{093E}\u{0939}\u{0924}\u{0947} \u{0939}\u{0948}\u{0902} \u{0924}\u{094B} \u{0928}\u{0940}\u{091A}\u{0947} \u{0926}\u{093F}\u{090F} \u{0917}\u{090F} \u{201C}\u{0938}\u{094C}\u{0926}\u{093E} \u{092A}\u{0915}\u{094D}\u{0915}\u{093E} \u{0915}\u{0930}\u{0947}\u{0902}\u{201D} \u{092C}\u{091F}\u{0928} \u{0915}\u{094B} \u{0926}\u{092C}\u{093E}\u{090F}\u{0901} \u{0964}',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.black87, fontSize: 14, height: 1.25, fontWeight: FontWeight.w800),
                       ),
@@ -146,7 +153,7 @@ $newMethod = @'
           );
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('\u{0921}\u{0940}\u{0932} \u{0915}\u{0948}\u{0902}\u{0938}\u{0932} \u{0915}\u{0930} \u{0926}\u{0940} \u{0917}\u{0908}\u{0964} \u{092F}\u{0939} \u{091C}\u{0949}\u{092C} \u{0905}\u{092C} \u{092B}\u{093F}\u{0930} \u{0938}\u{0947} \u{0909}\u{092A}\u{0932}\u{092C}\u{094D}\u{0927} \u{0939}\u{0948}\u{0964}'),
+            const SnackBar(content: Text('\u{0921}\u{0940}\u{0932} \u{0915}\u{0948}\u{0902}\u{0938}\u{0932} \u{0915}\u{0930} \u{0926}\u{0940}\u{0917}\u{0908}\u{0964} \u{092F}\u{0939} \u{091C}\u{0949}\u{092C} \u{0905}\u{092C} \u{092B}\u{093F}\u{0930} \u{0938}\u{0947} \u{0909}\u{092A}\u{0932}\u{092C}\u{094D}\u{0927} \u{0939}\u{0948}\u{0964}'),
           );
           setState(() => future = _load());
           return;
@@ -158,7 +165,7 @@ $newMethod = @'
         );
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('\u{0915}\u{093E}\u{092E} \u{092A}\u{0915}\u{094D}\u{0915}\u{093E} \u{0939}\u{094B} \u{0917}\u{092F}\u{093E}\u{0964} \u{0907}\u{0938} \u{0924}\u{093E}\u{0930}\u{0940}\u{0916} \u{0915}\u{0940} \u{0926}\u{0942}\u{0938}\u{0930}\u{0940} \u{091C}\u{0949}\u{092C} \u{0905}\u{092C} \u{0928}\u{0939}\u{0940}\u{0902} \u{0932}\u{0940} \u{091C}\u{093E} \u{0938}\u{0915}\u{0924}\u{0940} \u{0964}'),
+          const SnackBar(content: Text('\u{0915}\u{093E}\u{092E} \u{092A}\u{0915}\u{094D}\u{0915}\u{093E} \u{0939}\u{094B} \u{0917}\u{092F}\u{093E} \u{0964} \u{0907}\u{0938} \u{0924}\u{093E}\u{0930}\u{0940}\u{0916} \u{0915}\u{0940} \u{0926}\u{0942}\u{0938}\u{0930}\u{0940} \u{091C}\u{0949}\u{092C} \u{0905}\u{092C} \u{0928}\u{0939}\u{0940}\u{0902} \u{0932}\u{0940}\u{091C}\u{093E} \u{0938}\u{0915}\u{0924}\u{0940} \u{0964}'),
         );
         setState(() => future = _load());
       } finally {
@@ -175,8 +182,6 @@ $newMethod = @'
 '@
 
 $s = $s.Substring(0, $start) + $newMethod + $s.Substring($end)
-
-# Write the Dart file as UTF-8. The inserted Dart source itself is ASCII-only,
-# so Windows PowerShell cannot corrupt Hindi characters.
 Set-Content -Path $p -Value $s -Encoding UTF8
-Write-Host 'OK: Hindi popup encoding fixed with Dart Unicode escapes; confirm + cancel flow preserved.'
+Write-Host 'OK: Worker confirmation popup fixed. Hindi is UTF-8 safe, and Confirm/Cancel use separate backend paths.'
+Write-Host 'Cancel -> cancel_worker_job_confirmation; Confirm -> finalize_worker_job_confirmation_v2.'
