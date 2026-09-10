@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
@@ -50,8 +49,6 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
           final jobs = ((d['jobs'] as List?) ?? [])
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList();
-          final win = Map<String, dynamic>.from((d['posting_window'] as Map?) ?? {});
-          final canPost = win['can_post'] == true;
           final active = jobs
               .where((j) => !['completed', 'expired', 'closed'].contains(j['status']))
               .length;
@@ -106,35 +103,10 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                Card(
-                  color: t.secondaryBackground,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: t.alternate),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Icon(canPost ? Icons.schedule_outlined : Icons.lock_outline),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            canPost
-                                ? 'Job Posting अभी open है.'
-                                : 'अभी Job Posting बंद है। अगली Posting ${win['next_job_date'] ?? ''} को सुबह 10:30 बजे से शुरू होगी.',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
                 SizedBox(
                   height: 52,
                   child: FilledButton.icon(
-                    onPressed: canPost ? () => context.goNamed(CreateJobPostWidget.routeName) : null,
+                    onPressed: () => context.goNamed(CreateJobPostWidget.routeName),
                     icon: const Icon(Icons.add),
                     label: const Text('Create Job | जॉब पोस्ट करो'),
                   ),
