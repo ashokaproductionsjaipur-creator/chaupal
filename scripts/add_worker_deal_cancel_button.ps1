@@ -20,10 +20,15 @@ if (-not $s.Contains("finalized = true;")) {
   $s = $newS
 }
 
-# 3) Add cancel button using the exact helper Text source fragment.
+# 3) Add the cancel button by anchoring on the already-existing closing area of the orange button.
 if (-not $s.Contains("डील कैंसल करें")) {
-  $anchor = "                    const Text('(काम फाइनल करें)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),"
+  $anchor = @"
+                    const SizedBox(height: 6),
+                    const Text('(काम फाइनल करें)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+"@
   $button = @"
+                    const SizedBox(height: 6),
+                    const Text('(काम फाइनल करें)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
@@ -44,9 +49,9 @@ if (-not $s.Contains("डील कैंसल करें")) {
                     ),
 "@
   if (-not $s.Contains($anchor)) {
-    throw 'Could not find the exact final-confirm helper Text source fragment.'
+    throw 'Could not find the exact confirmation-button closing area.'
   }
-  $s = $s.Replace($anchor, "$anchor`r`n$button", 1)
+  $s = $s.Replace($anchor, $button)
 }
 
 # 4) Cancel must call the backend before finalize.
