@@ -406,12 +406,6 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
       final dateText = '${jobDate!.year.toString().padLeft(4, '0')}-${jobDate!.month.toString().padLeft(2, '0')}-${jobDate!.day.toString().padLeft(2, '0')}';
       final timeText = '${startTime!.hour.toString().padLeft(2, '0')}:${startTime!.minute.toString().padLeft(2, '0')}:00';
 
-      final allowed = await SupaFlow.client.rpc(
-        'enforce_job_posting_window',
-        params: {'p_job_date': dateText},
-      );
-      if (allowed != true) throw Exception('posting_window_closed');
-
       final uid = currentUserUid;
       final stamp = DateTime.now().millisecondsSinceEpoch;
       photoPath = '$uid/job_$stamp.jpg';
