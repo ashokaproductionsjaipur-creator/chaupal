@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -51,6 +52,10 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
   bool loadingProfessions = true;
   bool loadingLocations = true;
   bool audioUnavailable = false;
+  Uint8List? uploadedAudioBytes;
+  String? uploadedAudioName;
+  String? uploadedAudioExtension;
+  int? uploadedAudioSeconds;
 
   @override
   void initState() {
@@ -163,6 +168,67 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
     if (source == null) return;
     final image = await picker.pickImage(source: source, imageQuality: 80, maxWidth: 1600);
     if (mounted && image != null) setState(() => workImage = image);
+  }
+
+  Future<void> _pickAudioFile() async {
+    if (saving || recording) return;
+    const allowedExtensions = ['mp3', 'm4a', 'wav', 'aac', 'ogg', 'opus'];
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: allowedExtensions,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.single;
+      final ext = (file.extension ?? '').toLowerCase();
+      final bytes = file.bytes;
+      if (!allowedExtensions.contains(ext) || bytes == null || bytes.isEmpty) {
+        throw Exception('audio_format_not_allowed');
+      }
+      const maxBytes = 157286400;
+      if (bytes.length > maxBytes) throw Exception('audio_file_too_large');
+
+      await player.setSource(BytesSource(bytes));
+      final duration = await player.getDuration();
+      await player.stop();
+      if (duration == null) throw Exception('audio_duration_unknown');
+      if (duration.inSeconds > 3600) throw Exception('audio_duration_too_long');
+
+      if (!mounted) return;
+      setState(() {
+        uploadedAudioBytes = bytes;
+        uploadedAudioName = file.name;
+        uploadedAudioExtension = ext;
+        uploadedAudioSeconds = duration.inSeconds;
+        audioPath = null;
+        audioUnavailable = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        final s = e.toString();
+        final message = s.contains('audio_format_not_allowed')
+            ? 'केवल MP3, M4A, WAV, AAC, OGG या OPUS ऑडियो ही चुनें।'
+            : s.contains('audio_file_too_large')
+                ? 'ऑडियो फाइल 150 MB से बड़ी नहीं हो सकती।'
+                : s.contains('audio_duration_too_long')
+                    ? 'ऑडियो की अधिकतम लंबाई 60 मिनट है।'
+                    : 'ऑडियो फाइल पढ़ी नहीं जा सकी। कृपया दूसरी ऑडियो फाइल चुनें।';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } finally {
+      await player.stop();
+    }
+  }
+
+  Future<void> _playUploadedAudio() async {
+    final bytes = uploadedAudioBytes;
+    if (bytes == null) return;
+    try {
+      await player.play(BytesSource(bytes));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ऑडियो चल नहीं सका।')));
+    }
   }
 
   Future<void> _showNoMicrophoneDialog() async {
@@ -312,7 +378,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
     if (title.text.trim().isEmpty) missing.add('जॉब का नाम');
     if (professionId == null) missing.add('काम का प्रकार');
     if (workImage == null) missing.add('काम की फोटो');
-    if (!audioUnavailable && audioPath == null) missing.add('ऑडियो रिकॉर्डिंग');
+    if (!audioUnavailable && audioPath == null && uploadedAudioBytes == null) missing.add('ऑडियो नोट');
     if (amount.text.trim().isEmpty) missing.add('राशि');
     if (locationId == null) missing.add('चौपाल स्थान');
     if (jobDate == null) missing.add('काम की तारीख');
@@ -357,13 +423,23 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
         fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: false),
       );
 
-      if (audioPath != null) {
-        audioStoragePath = '$uid/job_$stamp.wav';
-        final audioBytes = await _readRecordedAudio(audioPath!);
+      if (audioPath != null || uploadedAudioBytes != null) {
+        final ext = uploadedAudioExtension ?? 'wav';
+        audioStoragePath = '$uid/job_$stamp.$ext';
+        final audioBytes = audioPath != null ? await _readRecordedAudio(audioPath!) : uploadedAudioBytes!;
+        final contentType = switch (ext) {
+          'mp3' => 'audio/mpeg',
+          'm4a' => 'audio/mp4',
+          'wav' => 'audio/wav',
+          'aac' => 'audio/aac',
+          'ogg' => 'audio/ogg',
+          'opus' => 'audio/opus',
+          _ => 'audio/octet-stream',
+        };
         await SupaFlow.client.storage.from('job-media').uploadBinary(
           audioStoragePath!,
           audioBytes,
-          fileOptions: const FileOptions(contentType: 'audio/wav', upsert: false),
+          fileOptions: FileOptions(contentType: contentType, upsert: false),
         );
       }
 
@@ -467,20 +543,38 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  const Text('काम क्या है, कितना काम है और पैसों की जानकारी बोलकर बताएं।', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 10),
-                  Text('${seconds.toString().padLeft(2, '0')} / 60 सेकंड', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                  const Text('काम और मोल की जानकारी ऑडियो में बताएं।', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 62,
-                    child: FilledButton.icon(
+                  Row(children: [
+                    Expanded(child: SizedBox(height: 62, child: FilledButton.icon(
                       style: FilledButton.styleFrom(backgroundColor: recording ? const Color(0xFFDC2626) : const Color(0xFFF59E0B), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                       onPressed: recording ? _stopRecording : _startRecording,
-                      icon: Icon(recording ? Icons.stop_circle_outlined : Icons.mic_none_outlined, size: 32),
-                      label: Text(recording ? 'रिकॉर्डिंग बंद करें' : 'ऑडियो रिकॉर्ड करें', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                      icon: Icon(recording ? Icons.stop_circle_outlined : Icons.mic_none_outlined, size: 30),
+                      label: Text(recording ? 'रिकॉर्डिंग बंद करें' : 'लाइव रिकॉर्ड करें', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    ))),
+                    const SizedBox(width: 10),
+                    Expanded(child: SizedBox(height: 62, child: OutlinedButton.icon(
+                      onPressed: saving || recording ? null : _pickAudioFile,
+                      icon: const Icon(Icons.audio_file_outlined, size: 30),
+                      label: const Text('फोन से ऑडियो चुनें', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    ))),
+                  ]),
+                  const SizedBox(height: 8),
+                  const Text('MP3, M4A, WAV, AAC, OGG, OPUS • अधिकतम 60 मिनट • 150 MB', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  if (uploadedAudioBytes != null && !recording) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF2563EB), width: 1.5)),
+                      child: Row(children: [
+                        const Icon(Icons.audiotrack, color: Color(0xFF2563EB), size: 30),
+                        const SizedBox(width: 9),
+                        Expanded(child: Text('${uploadedAudioName ?? 'ऑडियो'} • ${((uploadedAudioSeconds ?? 0) ~/ 60)} मिनट', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800))),
+                        IconButton(onPressed: _playUploadedAudio, icon: const Icon(Icons.play_arrow, size: 30), tooltip: 'ऑडियो सुनें'),
+                        IconButton(onPressed: () => setState(() { uploadedAudioBytes = null; uploadedAudioName = null; uploadedAudioExtension = null; uploadedAudioSeconds = null; }), icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626)), tooltip: 'हटाएं'),
+                      ]),
                     ),
-                  ),
+                  ],
                   if (audioUnavailable) ...[
                     const SizedBox(height: 10),
                     const Text('इस डिवाइस में रिकॉर्डिंग डिवाइस नहीं मिला। ऑडियो के बिना भी जॉब पोस्ट की जा सकती है.', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
