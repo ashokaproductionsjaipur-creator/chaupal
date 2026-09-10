@@ -91,6 +91,7 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
     if (s.contains('already_booked')) return 'आप आज के लिए एक जॉब पर बुक हैं।';
     if (s.contains('request_limit_reached')) return 'इस जॉब के लिए कामगार अनुरोध की अधिकतम सीमा पूरी हो चुकी है।';
     if (s.contains('duplicate_request')) return 'आप इस जॉब के लिए पहले ही अनुरोध भेज चुके हैं।';
+    if (s.contains('invalid_offer')) return 'कृपया सही रेट दर्ज करें।';
     return 'अनुरोध नहीं भेजा जा सका। फिर से प्रयास करें।';
   }
 
@@ -150,18 +151,67 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
     );
   }
 
+  Widget _audioNoteBox(BuildContext context, String audioPath, {bool compact = false}) {
+    final hasAudio = audioPath.trim().isNotEmpty && audioPath != 'null';
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(compact ? 9 : 11),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: hasAudio ? const Color(0xFF2563EB) : const Color(0xFFD1D5DB), width: 2),
+        color: hasAudio ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: compact ? 42 : 48,
+            height: compact ? 42 : 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: hasAudio ? const Color(0xFF2563EB) : const Color(0xFFE5E7EB),
+            ),
+            child: Icon(Icons.mic, color: hasAudio ? Colors.white : const Color(0xFF6B7280), size: compact ? 22 : 25),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'काम और मोल की जानकारी यहाँ सुनें',
+              style: TextStyle(fontSize: compact ? 13 : 15, fontWeight: FontWeight.w900),
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            height: compact ? 42 : 48,
+            child: OutlinedButton.icon(
+              onPressed: hasAudio ? () => _play(audioPath) : null,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF2563EB),
+                side: const BorderSide(color: Color(0xFF2563EB), width: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+              ),
+              icon: const Icon(Icons.play_arrow, size: 22),
+              label: const Text('सुनें', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _lockedJobSummary(BuildContext context, Map<String, dynamic> j, String submitted) {
     final photoPath = '${j['work_photo'] ?? ''}';
+    final audioPath = '${j['audio_note'] ?? ''}';
     final title = '${j['title'] ?? 'जॉब'}';
     final profession = '${j['profession_name'] ?? ''}';
     final location = '${j['location_name'] ?? ''}';
     final amount = '${j['expected_amount'] ?? ''}';
+    final requestedAmount = j['existing_request_amount'];
     final date = '${j['job_date'] ?? ''}';
     final time = '${j['start_time'] ?? ''}'.split('.').first;
 
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(maxWidth: 390, maxHeight: 390),
+      constraints: const BoxConstraints(maxWidth: 390, maxHeight: 520),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.97),
@@ -176,8 +226,8 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
           Row(
             children: [
               Container(
-                width: 82,
-                height: 62,
+                width: 78,
+                height: 60,
                 clipBehavior: Clip.antiAlias,
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(9)),
                 child: FutureBuilder<String?>(
@@ -191,47 +241,50 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 11),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                    Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                     if (profession.isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text(profession, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                      Text(profession, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
                     ],
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
           Wrap(
-            spacing: 8,
-            runSpacing: 6,
+            spacing: 7,
+            runSpacing: 5,
             children: [
-              _summaryChip('₹$amount'),
+              _summaryChip('मालिक की राशि ₹$amount'),
+              if (submitted == 'negotiate' && requestedAmount != null) _summaryChip('आपकी रेट ₹$requestedAmount'),
               _summaryChip(date),
               _summaryChip(time),
               if (location.isNotEmpty) _summaryChip(location),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+          _audioNoteBox(context, audioPath),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(submitted == 'accept' ? Icons.check_circle : Icons.forum, size: 27, color: _actionColor(submitted)),
+              Icon(submitted == 'accept' ? Icons.check_circle : Icons.forum, size: 25, color: _actionColor(submitted)),
               const SizedBox(width: 7),
               Flexible(
-                child: Text(_actionMessage(submitted), textAlign: TextAlign.center, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: _actionColor(submitted))),
+                child: Text(_actionMessage(submitted), textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _actionColor(submitted))),
               ),
             ],
           ),
-          const SizedBox(height: 7),
-          Text(_actionHelpMessage(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, height: 1.3, fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
-          const Text('मालिक के जवाब का इंतजार करें। इस जॉब पर दोबारा कोई action नहीं किया जा सकता।', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+          Text(_actionHelpMessage(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5, height: 1.25, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 5),
+          const Text('मालिक के जवाब का इंतजार करें। इस जॉब पर दोबारा कोई action नहीं किया जा सकता।', textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
         ],
       ),
     );
@@ -280,7 +333,7 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
               child: OutlinedButton.icon(
                 onPressed: isBusy ? null : () => _play(audio),
                 icon: const Icon(Icons.play_arrow_outlined, size: 28),
-                label: const Text('ऑडियो सुनें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                label: const Text('काम और मोल की जानकारी यहाँ सुनें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -289,19 +342,19 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
             Expanded(child: SizedBox(height: 56, child: OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFDC2626), side: const BorderSide(color: Color(0xFFDC2626), width: 2)),
               onPressed: isBusy || locked ? null : () => _request(jobId, 'reject'),
-              child: const Text('अस्वीकार करें', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              child: const Text('अस्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 56, child: OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF59E0B), side: const BorderSide(color: Color(0xFFF59E0B), width: 2)),
               onPressed: isBusy || locked ? null : () => _negotiate(jobId),
-              child: const Text('मोल-भाव करें', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              child: const Text('मोल-भाव करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 56, child: FilledButton(
               style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white),
               onPressed: isBusy || locked ? null : () => _request(jobId, 'accept'),
-              child: const Text('स्वीकार करें', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              child: const Text('स्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ))),
           ]),
         ],
