@@ -41,7 +41,6 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
 
   @override
   void initState() { super.initState(); _loadMasters(); }
-
   @override
   void dispose() {
     for (final c in [name, mobile, username, password, confirm, aadhaar, otherProfession]) c.dispose();
@@ -64,10 +63,13 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
   }
 
   Future<XFile?> _image({required bool cameraOnly}) async {
-    final source = cameraOnly ? ImageSource.camera : await showModalBottomSheet<ImageSource>(context: context, builder: (c) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      ListTile(title: const Text('Camera'), leading: const Icon(Icons.camera_alt_outlined), onTap: () => Navigator.pop(c, ImageSource.camera)),
-      ListTile(title: const Text('Gallery'), leading: const Icon(Icons.photo_library_outlined), onTap: () => Navigator.pop(c, ImageSource.gallery)),
-    ])));
+    final source = cameraOnly ? ImageSource.camera : await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (c) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(title: const Text('Camera'), leading: const Icon(Icons.camera_alt_outlined), onTap: () => Navigator.pop(c, ImageSource.camera)),
+        ListTile(title: const Text('Gallery'), leading: const Icon(Icons.photo_library_outlined), onTap: () => Navigator.pop(c, ImageSource.gallery)),
+      ])),
+    );
     if (source == null) return null;
     return picker.pickImage(source: source, imageQuality: 80, maxWidth: 1600);
   }
@@ -75,65 +77,120 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
   Future<void> _pickAndSet(String type) async {
     final x = await _image(cameraOnly: type == 'live');
     if (x == null || !mounted) return;
-    setState(() { if (type == 'profile') profilePhoto = x; else if (type == 'aadhaar') aadhaarPhoto = x; else livePhoto = x; });
+    setState(() {
+      if (type == 'profile') profilePhoto = x;
+      else if (type == 'aadhaar') aadhaarPhoto = x;
+      else livePhoto = x;
+    });
   }
 
   Future<void> _register() async {
     if (busy) return;
+    final selectedRole = role.toLowerCase();
     final u = username.text.trim().toLowerCase();
     final m = mobile.text.trim();
     final p = password.text;
     final commonInvalid = name.text.trim().isEmpty || !RegExp(r'^\d{10}$').hasMatch(m) || u.length < 3 || p.length < 8 || p != confirm.text || profilePhoto == null || aadhaar.text.trim().length != 12 || aadhaarPhoto == null;
-    final locationInvalid = role == 'worker' && locationId == null;
-    if (commonInvalid || locationInvalid) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(locationInvalid ? 'Worker के लिए चौपाल लोकेशन चुनना जरूरी है।' : 'Required fields सही भरें और सभी जरूरी photos चुनें. Password कम से कम 8 characters होना चाहिए.')));
+    if (commonInvalid) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Required fields सही भरें और सभी जरूरी photos चुनें. Password कम से कम 8 characters होना चाहिए.')));
       return;
     }
-    if (role == 'worker' && professionId == null && otherProfession.text.trim().isEmpty) {
+    if (selectedRole == 'worker' && locationId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Worker के लिए चौपाल लोकेशन चुनना जरूरी है।')));
+      return;
+    }
+    if (selectedRole == 'worker' && professionId == null && otherProfession.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profession चुनें.')));
       return;
     }
-    if (role == 'worker' && livePhoto == null) {
+    if (selectedRole == 'worker' && livePhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Worker verification के लिए Live Verification Photo जरूरी है.')));
       return;
     }
+
     setState(() => busy = true);
     try {
-      final response = await http.post(Uri.parse('https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/username-auth'), headers: const {'Content-Type': 'application/json'}, body: jsonEncode({'action': 'signup', 'username': u, 'password': p, 'role': role, 'full_name': name.text.trim(), 'mobile_number': m}));
-      dynamic body; try { body = jsonDecode(response.body); } catch (_) { body = null; }
+      final response = await http.post(
+        Uri.parse('https://iaumkrgocskwhhwdwnxj.supabase.co/functions/v1/username-auth'),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode({'action': 'signup', 'username': u, 'password': p, 'role': selectedRole, 'full_name': name.text.trim(), 'mobile_number': m}),
+      );
+      dynamic body;
+      try { body = jsonDecode(response.body); } catch (_) { body = null; }
       if (response.statusCode < 200 || response.statusCode >= 300 || body is! Map || body['ok'] != true) {
         final code = body is Map && body['code'] is String ? body['code'] : 'http_${response.statusCode}';
         final message = body is Map && body['message'] is String ? body['message'] : 'Account could not be created.';
         throw Exception('$code: $message');
       }
+
       final access = body['access_token']?.toString();
       final refresh = body['refresh_token']?.toString();
       final uid = body['user_id']?.toString();
       if (access == null || refresh == null || uid == null) throw Exception('Registration session could not be created.');
       await SupaFlow.client.auth.setSession(refresh);
-      final expires = body['expires_at'] is num ? DateTime.fromMillisecondsSinceEpoch((body['expires_at'] as num).toInt() * 1000) : DateTime.now().add(Duration(seconds: (body['expires_in'] ?? 3600) as int));
-      final userMap = Map<String, dynamic>.from(body['user'] as Map);
-      await authManager.signIn(authenticationToken: access, refreshToken: refresh, tokenExpiration: expires, authUid: uid, userData: ChaupalAuthUserStruct.fromMap(userMap));
+      final expires = body['expires_at'] is num
+          ? DateTime.fromMillisecondsSinceEpoch((body['expires_at'] as num).toInt() * 1000)
+          : DateTime.now().add(Duration(seconds: (body['expires_in'] ?? 3600) is num ? (body['expires_in'] as num).toInt() : 3600));
+
+      // Do NOT publish the temporary signup profile to the app router yet.
+      // complete_registration is the authoritative source for the final role/status.
       final stamp = DateTime.now().millisecondsSinceEpoch;
       final profilePath = '$uid/profile_$stamp.jpg';
       final aadhaarPath = '$uid/aadhaar_$stamp.jpg';
       await SupaFlow.client.storage.from('profile-media').uploadBinary(profilePath, await profilePhoto!.readAsBytes(), fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: false));
       await SupaFlow.client.storage.from('aadhaar-private').uploadBinary(aadhaarPath, await aadhaarPhoto!.readAsBytes(), fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: false));
       String? livePath;
-      if (role == 'worker') {
+      if (selectedRole == 'worker') {
         livePath = '$uid/live_$stamp.jpg';
         await SupaFlow.client.storage.from('worker-verification').uploadBinary(livePath, await livePhoto!.readAsBytes(), fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: false));
       }
-      final result = await SupaFlow.client.rpc('complete_registration', params: {'p_full_name': name.text.trim(), 'p_mobile_number': m, 'p_username': u, 'p_role': role, 'p_chaupal_location_id': role == 'worker' ? locationId : null, 'p_profession_id': professionId, 'p_other_profession': otherProfession.text.trim(), 'p_aadhaar_number': aadhaar.text.trim(), 'p_aadhaar_photo': aadhaarPath, 'p_profile_photo': profilePath, 'p_live_verification_photo': livePath});
+
+      final result = await SupaFlow.client.rpc('complete_registration', params: {
+        'p_full_name': name.text.trim(),
+        'p_mobile_number': m,
+        'p_username': u,
+        'p_role': selectedRole,
+        'p_chaupal_location_id': selectedRole == 'worker' ? locationId : null,
+        'p_profession_id': selectedRole == 'worker' ? professionId : null,
+        'p_other_profession': selectedRole == 'worker' ? otherProfession.text.trim() : '',
+        'p_aadhaar_number': aadhaar.text.trim(),
+        'p_aadhaar_photo': aadhaarPath,
+        'p_profile_photo': profilePath,
+        'p_live_verification_photo': livePath,
+      });
       final profile = Map<String, dynamic>.from(result as Map);
-      await authManager.updateAuthUserData(authenticationToken: access, refreshToken: refresh, tokenExpiration: expires, authUid: uid, userData: ChaupalAuthUserStruct.fromMap(profile));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(role == 'worker' ? 'Account created. Verification pending.' : 'Account created successfully.')));
-        if (role == 'worker') context.goNamed(WorkerProfileStatusWidget.routeName); else context.goNamed(OwnerDashboardWidget.routeName);
+      final registeredRole = (profile['role'] ?? '').toString().trim().toLowerCase();
+      final registeredStatus = (profile['account_status'] ?? '').toString().trim().toLowerCase();
+      if (registeredRole != 'owner' && registeredRole != 'worker') throw Exception('Server returned an invalid registration role.');
+      if (registeredRole != selectedRole) throw Exception('Registration role mismatch. Please try again.');
+
+      // Publish auth state only after the server has completed registration.
+      await authManager.signIn(
+        authenticationToken: access,
+        refreshToken: refresh,
+        tokenExpiration: expires,
+        authUid: uid,
+        userData: ChaupalAuthUserStruct.fromMap(profile),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(
+        registeredRole == 'worker' ? 'Account created. Verification pending.' : 'Account created successfully.',
+      )));
+
+      // Route strictly from the authoritative server role/status.
+      if (registeredRole == 'worker') {
+        context.goNamed(WorkerProfileStatusWidget.routeName);
+      } else if (registeredRole == 'owner' && registeredStatus == 'active') {
+        context.goNamed(OwnerDashboardWidget.routeName);
+      } else {
+        throw Exception('Owner account is not active.');
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Registration failed: ${e.toString().replaceFirst('Exception: ', '')}')));
-    } finally { if (mounted) setState(() => busy = false); }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
   }
 
   @override
@@ -176,19 +233,17 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
 
   Widget _roleChoice(FlutterFlowTheme t, String value, IconData icon, String en, String hi) {
     final selected = role == value;
-    return InkWell(borderRadius: BorderRadius.circular(18), onTap: () => setState(() { role = value; if (role == 'owner') { locationId = null; professionId = null; } }), child: AnimatedContainer(duration: const Duration(milliseconds: 160), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: selected ? t.primaryText.withValues(alpha: 0.06) : t.secondaryBackground, borderRadius: BorderRadius.circular(18), border: Border.all(color: selected ? t.primaryText : t.alternate, width: selected ? 1.5 : 1)), child: Row(children: [Container(width: 43, height: 43, decoration: BoxDecoration(color: selected ? t.primaryText : t.primaryText.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: selected ? t.primaryBackground : t.primaryText)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(en, style: const TextStyle(fontWeight: FontWeight.w800)), Text(hi, style: TextStyle(color: t.secondaryText, fontSize: 11))])), Icon(selected ? Icons.check_circle_rounded : Icons.circle_outlined, size: 21)])));
+    return InkWell(borderRadius: BorderRadius.circular(18), onTap: busy ? null : () => setState(() { role = value; if (role == 'owner') { locationId = null; professionId = null; livePhoto = null; } }), child: AnimatedContainer(duration: const Duration(milliseconds: 160), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: selected ? t.primaryText.withValues(alpha: 0.06) : t.secondaryBackground, borderRadius: BorderRadius.circular(18), border: Border.all(color: selected ? t.primaryText : t.alternate, width: selected ? 1.5 : 1)), child: Row(children: [Container(width: 43, height: 43, decoration: BoxDecoration(color: selected ? t.primaryText : t.primaryText.withValues(alpha: 0.07), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: selected ? t.primaryBackground : t.primaryText)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(en, style: const TextStyle(fontWeight: FontWeight.w800)), Text(hi, style: TextStyle(color: t.secondaryText, fontSize: 11))])), Icon(selected ? Icons.check_circle_rounded : Icons.circle_outlined, size: 21)])));
   }
 
   Widget _photoTile(String label, XFile? file, VoidCallback onTap, {required bool cameraOnly}) {
     final t = FlutterFlowTheme.of(context);
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(18), child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(18), border: Border.all(color: t.alternate)), child: Row(children: [_LocalPhotoPreview(file: file, size: 72), const SizedBox(width: 13), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(file == null ? label : '$label ✓', style: const TextStyle(fontWeight: FontWeight.w700)), const SizedBox(height: 4), Text(file == null ? (cameraOnly ? 'Camera से photo लें' : 'Camera या Gallery से photo चुनें') : 'Photo selected • Tap to change', style: TextStyle(color: t.secondaryText, fontSize: 11.5))])), Icon(file == null ? Icons.add_a_photo_outlined : Icons.edit_outlined)])));
+    return InkWell(onTap: busy ? null : onTap, borderRadius: BorderRadius.circular(18), child: Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(18), border: Border.all(color: t.alternate)), child: Row(children: [_LocalPhotoPreview(file: file, size: 72), const SizedBox(width: 13), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(file == null ? label : '$label ✓', style: const TextStyle(fontWeight: FontWeight.w700)), const SizedBox(height: 4), Text(file == null ? (cameraOnly ? 'Camera से photo लें' : 'Camera या Gallery से photo चुनें') : 'Photo selected • Tap to change', style: TextStyle(color: t.secondaryText, fontSize: 11.5))])), Icon(file == null ? Icons.add_a_photo_outlined : Icons.edit_outlined)])));
   }
 
-  Widget _locationDropdown() => DropdownButtonFormField<int>(value: locationId, isExpanded: true, menuMaxHeight: 420, decoration: const InputDecoration(labelText: 'Chaupal Location | चौपाल लोकेशन *', hintText: 'Select Chaupal Location', border: OutlineInputBorder(), suffixIcon: Icon(Icons.location_on_outlined)), items: loadingMasters ? const [] : locations.map((x) { final id = (x['id'] as num).toInt(); return DropdownMenuItem<int>(value: id, child: Text('${x['display_name']}', overflow: TextOverflow.ellipsis)); }).toList(), onChanged: loadingMasters ? null : (v) => setState(() => locationId = v));
-
-  Widget _professionDropdown() => DropdownButtonFormField<int>(value: professionId, isExpanded: true, menuMaxHeight: 420, decoration: const InputDecoration(labelText: 'Profession | प्रोफेशन', hintText: 'Select Profession', border: OutlineInputBorder(), suffixIcon: Icon(Icons.work_outline)), items: professions.map((x) { final id = (x['id'] as num).toInt(); return DropdownMenuItem<int>(value: id, child: Text('${x['display_name']}', overflow: TextOverflow.ellipsis)); }).toList(), onChanged: (v) => setState(() => professionId = v));
-
-  Widget _field(String label, TextEditingController c, String hint, {TextInputType? keyboard, bool obscure = false, IconData? icon}) => TextField(controller: c, keyboardType: keyboard, obscureText: obscure, decoration: InputDecoration(labelText: label, hintText: hint, border: const OutlineInputBorder(), prefixIcon: icon == null ? null : Icon(icon)));
+  Widget _locationDropdown() => DropdownButtonFormField<int>(value: locationId, isExpanded: true, menuMaxHeight: 420, decoration: const InputDecoration(labelText: 'Chaupal Location | चौपाल लोकेशन *', hintText: 'Select Chaupal Location', border: OutlineInputBorder(), suffixIcon: Icon(Icons.location_on_outlined)), items: loadingMasters ? const [] : locations.map((x) { final id = (x['id'] as num).toInt(); return DropdownMenuItem<int>(value: id, child: Text('${x['display_name']}', overflow: TextOverflow.ellipsis)); }).toList(), onChanged: loadingMasters || busy ? null : (v) => setState(() => locationId = v));
+  Widget _professionDropdown() => DropdownButtonFormField<int>(value: professionId, isExpanded: true, menuMaxHeight: 420, decoration: const InputDecoration(labelText: 'Profession | प्रोफेशन', hintText: 'Select Profession', border: OutlineInputBorder(), suffixIcon: Icon(Icons.work_outline)), items: professions.map((x) { final id = (x['id'] as num).toInt(); return DropdownMenuItem<int>(value: id, child: Text('${x['display_name']}', overflow: TextOverflow.ellipsis)); }).toList(), onChanged: busy ? null : (v) => setState(() => professionId = v));
+  Widget _field(String label, TextEditingController c, String hint, {TextInputType? keyboard, bool obscure = false, IconData? icon}) => TextField(controller: c, keyboardType: keyboard, obscureText: obscure, enabled: !busy, decoration: InputDecoration(labelText: label, hintText: hint, border: const OutlineInputBorder(), prefixIcon: icon == null ? null : Icon(icon)));
 }
 
 class _LocalPhotoPreview extends StatelessWidget {
