@@ -4,14 +4,14 @@ $p = Join-Path (Get-Location) 'lib/pages/worker_job_feed/worker_job_feed_widget.
 if (-not (Test-Path $p)) { throw "Worker job feed file not found: $p" }
 $s = Get-Content -Raw -Encoding UTF8 $p
 
-# 1) Track whether the worker explicitly cancelled the confirmation dialog.
+# Track explicit worker cancellation.
 if (-not $s.Contains("bool cancelled = false;")) {
   $old = "      bool finalized = false;"
   if (-not $s.Contains($old)) { throw 'Could not find the confirmation state variables.' }
-  $s = $s.Replace($old, "      bool finalized = false;`r`n      bool cancelled = false;")
+  $s = $s.Replace($old, "      bool finalized = false;`r`n      bool cancelled = false;", 1)
 }
 
-# 2) The orange button must explicitly mark FINALIZE before closing the dialog.
+# Make the orange button explicitly mark FINALIZE before closing.
 if (-not $s.Contains("finalized = true;")) {
   $pattern = "(?s)(onPressed:\s*)\(\)\s*=>\s*Navigator\.pop\(c\),\s*(style:\s*FilledButton\.styleFrom\(\s*backgroundColor:\s*const Color\(0xFFFF8C00\),)"
   $replacement = '$1() {`r`n                finalized = true;`r`n                Navigator.pop(c);`r`n              },`r`n                $2'
@@ -20,9 +20,14 @@ if (-not $s.Contains("finalized = true;")) {
   $s = $newS
 }
 
-# 3) Add a clearly separate cancel button immediately below the final-confirm area.
+# Add the cancel button after the existing final-confirm helper label.
 if (-not $s.Contains("डील कैंसल करें")) {
-  $pattern = "(?s)(\s+const SizedBox\(height: 6\),\s+const Text\('\(काम फाइनल करें\)'.*?\),)"
+  $marker = "const Text('(काम फाइनल करें)',"
+  $idx = $s.IndexOf($marker)
+  if ($idx -lt 0) { throw 'Could not find the final-confirm helper label.' }
+  $lineEnd = $s.IndexOf("),", $idx)
+  if ($lineEnd -lt 0) { throw 'Could not locate the end of the final-confirm helper label.' }
+  $insertAt = $lineEnd + 2
   $button = @"
               const SizedBox(height: 10),
               SizedBox(
@@ -43,20 +48,12 @@ if (-not $s.Contains("डील कैंसल करें")) {
                 ),
               ),
 "@
-  $newS = [regex]::Replace($s, $pattern, '$1' + $button, 1)
-  if ($newS -eq $s) { throw 'Could not find the confirmation button area for inserting the cancel button.' }
-  $s = $newS
+  $s = $s.Insert($insertAt, "`r`n$button")
 }
 
-# 4) Cancel must call the backend first. This clears every confirmation/finalize condition.
+# Route cancel through the backend RPC before finalize.
 if (-not $s.Contains("'cancel_worker_job_confirmation'")) {
-  $anchor = @"
-        if (!mounted) return;
-        await SupaFlow.client.rpc(
-          'finalize_worker_job_confirmation_v2',
-          params: {'p_job_id': '${j['job_id']}'},
-        );
-"@
+  $pattern = "(?s)(\s+if \(!mounted\) return;\s+)await SupaFlow\.client\.rpc\(\s*'finalize_worker_job_confirmation_v2',\s*params: \{'p_job_id': '\$\{j\['job_id'\]\}'\},\s*\);"
   $replacement = @"
         if (!mounted) return;
         if (cancelled) {
@@ -76,8 +73,9 @@ if (-not $s.Contains("'cancel_worker_job_confirmation'")) {
           params: {'p_job_id': '${j['job_id']}'},
         );
 "@
-  if (-not $s.Contains($anchor)) { throw 'Could not find the finalize RPC block.' }
-  $s = $s.Replace($anchor, $replacement)
+  $newS = [regex]::Replace($s, $pattern, $replacement, 1)
+  if ($newS -eq $s) { throw 'Could not find the finalize RPC block.' }
+  $s = $newS
 }
 
 Set-Content -Path $p -Value $s -Encoding UTF8
