@@ -3,39 +3,69 @@ from pathlib import Path
 p = Path('lib/pages/job_request_management/job_request_management_widget.dart')
 s = p.read_text()
 
-marker = "  Widget _jobCard(FlutterFlowTheme t, Map<String, dynamic> j) {"
-if marker not in s:
-    raise SystemExit('job card marker not found')
+# Add explicit playback state.
+old = "  final player = AudioPlayer();\n  bool busy = false;"
+new = "  final player = AudioPlayer();\n  bool busy = false;\n  bool audioPlaying = false;"
+if "bool audioPlaying = false;" not in s:
+    if old not in s:
+        raise SystemExit('player state marker not found')
+    s = s.replace(old, new, 1)
 
-helper = r'''  Widget _ownerAudioSection(String audio) {
-    final hasAudio = audio.isNotEmpty && audio != 'null';
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: hasAudio ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: hasAudio ? const Color(0xFF86EFAC) : const Color(0xFFCBD5E1)),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            hasAudio ? Icons.audiotrack_outlined : Icons.mic_off_outlined,
-            size: 28,
-            color: hasAudio ? const Color(0xFF16A34A) : const Color(0xFF94A3B8),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              hasAudio ? 'ऑडियो नोट' : 'ऑडियो नोट उपलब्ध नहीं है',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-                color: hasAudio ? const Color(0xFF166534) : const Color(0xFF64748B),
-              ),
-            ),
-          ),
-          if (hasAudio)
+# Reset state when playback finishes.
+old = "  void initState() {\n    super.initState();\n    jobsFuture = _loadJobs();\n    requestsFuture = Future.value(<Map<String, dynamic>>[]);\n  }"
+new = "  void initState() {\n    super.initState();\n    player.onPlayerComplete.listen((_) {\n      if (mounted) setState(() => audioPlaying = false);\n    });\n    jobsFuture = _loadJobs();\n    requestsFuture = Future.value(<Map<String, dynamic>>[]);\n  }"
+if "player.onPlayerComplete.listen" not in s:
+    if old not in s:
+        raise SystemExit('initState marker not found')
+    s = s.replace(old, new, 1)
+
+# Replace the old silent play helper with explicit start/stop/error handling.
+old = """  Future<void> _playAudio(String path) async {
+    final url = await _signedJob(path);
+    if (url == null) return;
+    try {
+      await player.play(UrlSource(url));
+    } catch (_) {}
+  }
+"""
+new = """  Future<void> _playAudio(String path) async {
+    if (audioPlaying) {
+      try {
+        await player.stop();
+      } finally {
+        if (mounted) setState(() => audioPlaying = false);
+      }
+      return;
+    }
+    final url = await _signedJob(path);
+    if (url == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ऑडियो लोड नहीं हो पाया।')),
+        );
+      }
+      return;
+    }
+    try {
+      await player.play(UrlSource(url));
+      if (mounted) setState(() => audioPlaying = true);
+    } catch (e) {
+      if (mounted) {
+        setState(() => audioPlaying = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('ऑडियो चल नहीं पाया: $e')),
+        );
+      }
+    }
+  }
+"""
+if "ऑडियो चल नहीं पाया" not in s:
+    if old not in s:
+        raise SystemExit('play helper marker not found')
+    s = s.replace(old, new, 1)
+
+# Replace the play button with a clear play/stop state and status text.
+old = """          if (hasAudio)
             SizedBox(
               height: 42,
               child: OutlinedButton.icon(
@@ -48,26 +78,41 @@ helper = r'''  Widget _ownerAudioSection(String audio) {
                 label: const Text('सुनें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
               ),
             )
-          else
+"""
+new = """          if (hasAudio)
+            SizedBox(
+              height: 42,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: audioPlaying ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                  side: BorderSide(color: audioPlaying ? const Color(0xFFDC2626) : const Color(0xFF16A34A), width: 1.5),
+                ),
+                onPressed: () => _playAudio(audio),
+                icon: Icon(audioPlaying ? Icons.stop_circle_outlined : Icons.play_arrow_outlined, size: 24),
+                label: Text(audioPlaying ? 'रोकें' : 'ऑडियो सुनें', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              ),
+            )
+"""
+if "audioPlaying ? 'रोकें' : 'ऑडियो सुनें'" not in s:
+    if old not in s:
+        raise SystemExit('audio button marker not found')
+    s = s.replace(old, new, 1)
+
+# Add a visible status below the control.
+old = """          else
             const Text('—', style: TextStyle(fontSize: 22, color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
         ],
       ),
     );
   }
+"""
+new = """          else
+            const Text('—', style: TextStyle(fontSize: 22, color: Color(0xFF94A3B8), fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+"""
+# No-op: keep the compact card layout; button state itself is the status indicator.
 
-'''
-if '_ownerAudioSection(String audio)' not in s:
-    s = s.replace(marker, helper + marker, 1)
-
-old = """              Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 15)),
-              const SizedBox(height: 12),
-              SizedBox("""
-new = """              Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 15)),
-              const SizedBox(height: 10),
-              _ownerAudioSection('${j['audio_note'] ?? ''}'.trim()),
-              const SizedBox(height: 12),
-              SizedBox("""
-if old not in s:
-    raise SystemExit('job card insertion point not found')
-s = s.replace(old, new, 1)
 p.write_text(s)
