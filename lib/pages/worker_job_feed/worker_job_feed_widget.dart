@@ -44,9 +44,7 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
   Future<String?> _signed(String path) async {
     if (path.trim().isEmpty || path == 'null') return null;
     try {
-      return await SupaFlow.client.storage
-          .from('job-media')
-          .createSignedUrl(path, 300);
+      return await SupaFlow.client.storage.from('job-media').createSignedUrl(path, 300);
     } catch (_) {
       return null;
     }
@@ -58,26 +56,16 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
   }
 
   Future<void> _request(String jobId, String type, {double? offer}) async {
-    if (_busyJobs.contains(jobId) || _submittedActions.containsKey(jobId)) {
-      return;
-    }
-
+    if (_busyJobs.contains(jobId) || _submittedActions.containsKey(jobId)) return;
     setState(() => _busyJobs.add(jobId));
-
     try {
-      await SupaFlow.client.rpc(
-        'create_worker_request',
-        params: {
-          'p_job_id': jobId,
-          'p_request_type': type,
-          'p_offered_amount': offer,
-        },
-      );
-
+      await SupaFlow.client.rpc('create_worker_request', params: {
+        'p_job_id': jobId,
+        'p_request_type': type,
+        'p_offered_amount': offer,
+      });
       if (!mounted) return;
-
       if (type == 'reject') {
-        // A rejected job must disappear from this worker's feed.
         final next = _load();
         setState(() {
           _busyJobs.remove(jobId);
@@ -85,8 +73,6 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
         });
         return;
       }
-
-      // Accept / negotiate stays visible but becomes permanently locked.
       setState(() {
         _busyJobs.remove(jobId);
         _submittedActions[jobId] = type;
@@ -94,33 +80,22 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
     } catch (e) {
       if (mounted) {
         setState(() => _busyJobs.remove(jobId));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_friendlyError(e))),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_friendlyError(e))));
       }
     }
   }
 
   String _friendlyError(Object e) {
     final s = e.toString();
-    if (s.contains('worker_not_verified')) {
-      return 'आपका खाता अभी सत्यापन में है। मंजूरी मिलने के बाद आप जॉब देख और स्वीकार कर सकेंगे।';
-    }
+    if (s.contains('worker_not_verified')) return 'आपका खाता अभी सत्यापन में है। मंजूरी मिलने के बाद आप जॉब देख और स्वीकार कर सकेंगे।';
     if (s.contains('already_booked')) return 'आप आज के लिए एक जॉब पर बुक हैं।';
-    if (s.contains('request_limit_reached')) {
-      return 'इस जॉब के लिए कामगार अनुरोध की अधिकतम सीमा पूरी हो चुकी है।';
-    }
-    if (s.contains('duplicate_request')) {
-      return 'आप इस जॉब के लिए पहले ही अनुरोध भेज चुके हैं।';
-    }
+    if (s.contains('request_limit_reached')) return 'इस जॉब के लिए कामगार अनुरोध की अधिकतम सीमा पूरी हो चुकी है।';
+    if (s.contains('duplicate_request')) return 'आप इस जॉब के लिए पहले ही अनुरोध भेज चुके हैं।';
     return 'अनुरोध नहीं भेजा जा सका। फिर से प्रयास करें।';
   }
 
   Future<void> _negotiate(String jobId) async {
-    if (_busyJobs.contains(jobId) || _submittedActions.containsKey(jobId)) {
-      return;
-    }
-
+    if (_busyJobs.contains(jobId) || _submittedActions.containsKey(jobId)) return;
     final c = TextEditingController();
     final v = await showDialog<double>(
       context: context,
@@ -129,21 +104,12 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
         content: TextField(
           controller: c,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            prefixText: '₹ ',
-            labelText: 'अपना रेट लिखें',
-          ),
+          decoration: const InputDecoration(prefixText: '₹ ', labelText: 'अपना रेट लिखें'),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(x),
-            child: const Text('रद्द करें'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(x), child: const Text('रद्द करें')),
           FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFFF59E0B),
-              foregroundColor: Colors.white,
-            ),
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFF59E0B), foregroundColor: Colors.white),
             onPressed: () {
               final n = double.tryParse(c.text.trim());
               if (n != null && n > 0) Navigator.pop(x, n);
@@ -154,23 +120,18 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
       ),
     );
     c.dispose();
-    if (v != null && mounted) {
-      await _request(jobId, 'negotiate', offer: v);
-    }
+    if (v != null && mounted) await _request(jobId, 'negotiate', offer: v);
   }
 
-  String _actionMessage(String type) {
-    if (type == 'accept') {
-      return 'स्वीकार करने का अनुरोध मालिक को भेज दिया गया है';
-    }
-    return 'बातचीत का अनुरोध मालिक को भेज दिया गया है';
-  }
+  String _actionMessage(String type) => type == 'accept'
+      ? 'स्वीकार करने का अनुरोध मालिक को भेज दिया गया है'
+      : 'बातचीत का अनुरोध मालिक को भेज दिया गया है';
 
-  Color _actionColor(String type) {
-    return type == 'accept'
-        ? const Color(0xFF16A34A)
-        : const Color(0xFFF59E0B);
-  }
+  String _actionHelpMessage() => 'अगर आपकी राय मालिक को पसंद आई तो काम देने वाला आपके बताए मोबाइल नंबर पर फोन करेगा और तभी आज का काम मिलेगा। नहीं तो दूसरे कामों की request भेजते रहें।';
+
+  Color _actionColor(String type) => type == 'accept'
+      ? const Color(0xFF16A34A)
+      : const Color(0xFFF59E0B);
 
   Widget _jobCard(BuildContext context, Map<String, dynamic> j) {
     final t = FlutterFlowTheme.of(context);
@@ -188,158 +149,56 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
           FutureBuilder<String?>(
             future: _signed('${j['work_photo'] ?? ''}'),
             builder: (c, img) {
-              if (!img.hasData) {
-                return const SizedBox(
-                  height: 130,
-                  child: Center(
-                    child: Icon(Icons.image_outlined, size: 40),
-                  ),
-                );
-              }
-
+              if (!img.hasData) return const SizedBox(height: 130, child: Center(child: Icon(Icons.image_outlined, size: 40)));
               return ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  img.data!,
-                  height: 170,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) {
-                    return const SizedBox(
-                      height: 130,
-                      child: Center(
-                        child: Icon(Icons.broken_image_outlined, size: 40),
-                      ),
-                    );
-                  },
-                ),
+                child: Image.network(img.data!, height: 170, width: double.infinity, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox(height: 130, child: Center(child: Icon(Icons.broken_image_outlined, size: 40)))),
               );
             },
           ),
           const SizedBox(height: 12),
-          Text(
-            '${j['title']}',
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+          Text('${j['title']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
-          Text(
-            '₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}',
-            style: const TextStyle(fontSize: 16),
-          ),
+          Text('₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}', style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 6),
-          Text(
-            '${j['profession_name']} • ${j['location_name']}',
-            style: const TextStyle(fontSize: 16),
-          ),
+          Text('${j['profession_name']} • ${j['location_name']}', style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 6),
-          Text(
-            'मालिक: ${j['owner_name']}',
-            style: const TextStyle(fontSize: 16),
-          ),
+          Text('मालिक: ${j['owner_name']}', style: const TextStyle(fontSize: 16)),
           if ((j['description'] ?? '').toString().isNotEmpty) ...[
             const SizedBox(height: 8),
-            Text(
-              '${j['description']}',
-              style: const TextStyle(fontSize: 16),
-            ),
+            Text('${j['description']}', style: const TextStyle(fontSize: 16)),
           ],
           if (audio.isNotEmpty) ...[
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 54,
+            SizedBox(width: double.infinity, height: 54,
               child: OutlinedButton.icon(
                 onPressed: isBusy ? null : () => _play(audio),
                 icon: const Icon(Icons.play_arrow_outlined, size: 28),
-                label: const Text(
-                  'ऑडियो सुनें',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                label: const Text('ऑडियो सुनें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
             ),
           ],
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFDC2626),
-                      side: const BorderSide(
-                        color: Color(0xFFDC2626),
-                        width: 2,
-                      ),
-                    ),
-                    onPressed: isBusy || locked
-                        ? null
-                        : () => _request(jobId, 'reject'),
-                    child: const Text(
-                      'अस्वीकार करें',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFF59E0B),
-                      side: const BorderSide(
-                        color: Color(0xFFF59E0B),
-                        width: 2,
-                      ),
-                    ),
-                    onPressed: isBusy || locked
-                        ? null
-                        : () => _negotiate(jobId),
-                    child: const Text(
-                      'बातचीत करें',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF16A34A),
-                      foregroundColor: Colors.white,
-                    ),
-                    onPressed: isBusy || locked
-                        ? null
-                        : () => _request(jobId, 'accept'),
-                    child: const Text(
-                      'स्वीकार करें',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          Row(children: [
+            Expanded(child: SizedBox(height: 56, child: OutlinedButton(
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFDC2626), side: const BorderSide(color: Color(0xFFDC2626), width: 2)),
+              onPressed: isBusy || locked ? null : () => _request(jobId, 'reject'),
+              child: const Text('अस्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            ))),
+            const SizedBox(width: 8),
+            Expanded(child: SizedBox(height: 56, child: OutlinedButton(
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF59E0B), side: const BorderSide(color: Color(0xFFF59E0B), width: 2)),
+              onPressed: isBusy || locked ? null : () => _negotiate(jobId),
+              child: const Text('बातचीत करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            ))),
+            const SizedBox(width: 8),
+            Expanded(child: SizedBox(height: 56, child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white),
+              onPressed: isBusy || locked ? null : () => _request(jobId, 'accept'),
+              child: const Text('स्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            ))),
+          ]),
         ],
       ),
     );
@@ -348,84 +207,38 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
       color: t.secondaryBackground,
       elevation: 0,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: t.alternate),
-      ),
-      child: Stack(
-        children: [
-          cardContent,
-          if (isBusy)
-            Positioned.fill(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: t.alternate)),
+      child: Stack(children: [
+        cardContent,
+        if (isBusy) Positioned.fill(child: Container(color: Colors.white.withOpacity(0.45), child: const Center(child: CircularProgressIndicator()))),
+        if (locked) Positioned.fill(
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
               child: Container(
-                color: Colors.white.withOpacity(0.45),
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-            ),
-          if (locked)
-            Positioned.fill(
-              child: ClipRect(
-                child: BackdropFilter(
-                  filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                color: Colors.white.withOpacity(0.62),
+                padding: const EdgeInsets.all(20),
+                child: Center(
                   child: Container(
-                    color: Colors.white.withOpacity(0.62),
-                    padding: const EdgeInsets.all(20),
-                    child: Center(
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 22,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.94),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: _actionColor(submitted!),
-                            width: 3,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              submitted == 'accept'
-                                  ? Icons.check_circle
-                                  : Icons.forum,
-                              size: 58,
-                              color: _actionColor(submitted),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _actionMessage(submitted),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: _actionColor(submitted),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            const Text(
-                              'अब इस जॉब पर दोबारा कोई बटन नहीं दबाया जा सकता।\nमालिक के जवाब का इंतजार करें।',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.94), borderRadius: BorderRadius.circular(16), border: Border.all(color: _actionColor(submitted!), width: 3)),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(submitted == 'accept' ? Icons.check_circle : Icons.forum, size: 58, color: _actionColor(submitted)),
+                      const SizedBox(height: 12),
+                      Text(_actionMessage(submitted), textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _actionColor(submitted))),
+                      const SizedBox(height: 12),
+                      Text(_actionHelpMessage(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, height: 1.45, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 12),
+                      const Text('अब इस जॉब पर दोबारा कोई बटन नहीं दबाया जा सकता। मालिक के जवाब का इंतजार करें।', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    ]),
                   ),
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -438,44 +251,20 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
         title: 'जॉब्स',
         showWorkerLocation: true,
         onWorkerLocationChanged: () {
-          if (mounted) {
-            setState(() {
-              future = _load();
-            });
-          }
+          if (mounted) setState(() { future = _load(); });
         },
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: future,
         builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('जॉब्स लोड नहीं हो सकीं। फिर से प्रयास करें।'),
-              ),
-            );
-          }
-
+          if (snapshot.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('जॉब्स लोड नहीं हो सकीं। फिर से प्रयास करें।')));
           final jobs = snapshot.data ?? [];
-          if (jobs.isEmpty) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('अभी आपके लिए कोई जॉब उपलब्ध नहीं है।'),
-              ),
-            );
-          }
-
+          if (jobs.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text('अभी आपके लिए कोई जॉब उपलब्ध नहीं है।')));
           return RefreshIndicator(
             onRefresh: () async {
               final next = _load();
-              setState(() {
-                future = next;
-              });
+              setState(() { future = next; });
               await next;
             },
             child: ListView.separated(
