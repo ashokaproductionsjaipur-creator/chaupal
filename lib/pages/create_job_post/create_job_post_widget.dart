@@ -186,14 +186,14 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
       if (!allowedExtensions.contains(ext) || bytes == null || bytes.isEmpty) {
         throw Exception('audio_format_not_allowed');
       }
-      const maxBytes = 157286400;
+      const maxBytes = 3145728;
       if (bytes.length > maxBytes) throw Exception('audio_file_too_large');
 
       await player.setSource(BytesSource(bytes));
       final duration = await player.getDuration();
       await player.stop();
       if (duration == null) throw Exception('audio_duration_unknown');
-      if (duration.inSeconds > 3600) throw Exception('audio_duration_too_long');
+      if (duration > const Duration(seconds: 60)) throw Exception('audio_duration_too_long');
 
       if (!mounted) return;
       setState(() {
@@ -210,9 +210,9 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
         final message = s.contains('audio_format_not_allowed')
             ? 'केवल MP3, M4A, WAV, AAC, OGG या OPUS ऑडियो ही चुनें।'
             : s.contains('audio_file_too_large')
-                ? 'ऑडियो फाइल 150 MB से बड़ी नहीं हो सकती।'
+                ? 'ऑडियो फाइल 3 MB से बड़ी नहीं हो सकती।'
                 : s.contains('audio_duration_too_long')
-                    ? 'ऑडियो की अधिकतम लंबाई 60 मिनट है।'
+                    ? 'ऑडियो की अधिकतम लंबाई 60 सेकंड है।'
                     : 'ऑडियो फाइल पढ़ी नहीं जा सकी। कृपया दूसरी ऑडियो फाइल चुनें।';
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
@@ -560,7 +560,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
                     ))),
                   ]),
                   const SizedBox(height: 8),
-                  const Text('MP3, M4A, WAV, AAC, OGG, OPUS • अधिकतम 60 मिनट • 150 MB', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  const Text('MP3, M4A, WAV, AAC, OGG, OPUS • अधिकतम 60 सेकंड • 3 MB', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                   if (uploadedAudioBytes != null && !recording) ...[
                     const SizedBox(height: 10),
                     Container(
