@@ -8,6 +8,8 @@ if "package:file_picker/file_picker.dart" in s:
     s = s.replace("'ऑडियो फाइल 150 MB से बड़ी नहीं हो सकती।'", "'ऑडियो फाइल 3 MB से बड़ी नहीं हो सकती।'")
     s = s.replace("'ऑडियो की अधिकतम लंबाई 60 मिनट है।'", "'ऑडियो की अधिकतम लंबाई 60 सेकंड है।'")
     s = s.replace("MP3, M4A, WAV, AAC, OGG, OPUS • अधिकतम 60 मिनट • 150 MB", "MP3, M4A, WAV, AAC, OGG, OPUS • अधिकतम 60 सेकंड • 3 MB")
+    old_window_check = """      final allowed = await SupaFlow.client.rpc(\n        'enforce_job_posting_window',\n        params: {'p_job_date': dateText},\n      );\n      if (allowed != true) throw Exception('posting_window_closed');\n\n"""
+    s = s.replace(old_window_check, "")
     p.write_text(s)
     raise SystemExit(0)
 
