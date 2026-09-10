@@ -133,6 +133,23 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
       ? const Color(0xFF16A34A)
       : const Color(0xFFF59E0B);
 
+  Widget _summaryChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD1D5DB)),
+      ),
+      child: Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
   Widget _lockedJobSummary(BuildContext context, Map<String, dynamic> j, String submitted) {
     final photoPath = '${j['work_photo'] ?? ''}';
     final title = '${j['title'] ?? 'जॉब'}';
@@ -240,7 +257,8 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
               return ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Image.network(img.data!, height: 170, width: double.infinity, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox(height: 130, child: Center(child: Icon(Icons.broken_image_outlined, size: 40)))),
+                  errorBuilder: (_, __, ___) => const SizedBox(height: 130, child: Center(child: Icon(Icons.broken_image_outlined, size: 40))),
+                ),
               );
             },
           ),
@@ -271,7 +289,7 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
             Expanded(child: SizedBox(height: 56, child: OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFDC2626), side: const BorderSide(color: Color(0xFFDC2626), width: 2)),
               onPressed: isBusy || locked ? null : () => _request(jobId, 'reject'),
-              child: const Text('अस्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              child: const Text('अस्वीकार करें', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 56, child: OutlinedButton(
