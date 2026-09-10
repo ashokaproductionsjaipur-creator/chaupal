@@ -8,7 +8,7 @@ $s = Get-Content -Raw -Encoding UTF8 $p
 if (-not $s.Contains("bool cancelled = false;")) {
   $old = "      bool finalized = false;"
   if (-not $s.Contains($old)) { throw 'Could not find the confirmation state variables.' }
-  $s = $s.Replace($old, "      bool finalized = false;`r`n      bool cancelled = false;", 1)
+  $s = $s.Replace($old, "      bool finalized = false;`r`n      bool cancelled = false;")
 }
 
 # Make the orange button explicitly mark FINALIZE before closing.
@@ -20,7 +20,7 @@ if (-not $s.Contains("finalized = true;")) {
   $s = $newS
 }
 
-# Add the cancel button after the existing final-confirm helper label.
+# Add cancel button after existing final-confirm helper label.
 if (-not $s.Contains("डील कैंसल करें")) {
   $marker = "const Text('(काम फाइनल करें)',"
   $idx = $s.IndexOf($marker)
