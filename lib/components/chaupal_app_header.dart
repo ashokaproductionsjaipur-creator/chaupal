@@ -3,6 +3,7 @@ import '/backend/supabase/supabase.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
 import '/pages/role_selection/role_selection_widget.dart';
+import '/pages/job_history_archive/job_history_archive_widget.dart';
 import 'package:flutter/material.dart';
 
 class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
@@ -72,6 +73,19 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
           ]),
         ),
         actions: [
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1976D2), foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                context.goNamed(JobHistoryArchiveWidget.routeName);
+              },
+              child: const Text('मेरी जॉब हिस्ट्री देखें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            ),
+          ),
+          const SizedBox(height: 8),
           SizedBox(width: double.infinity, height: 52, child: FilledButton(style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white), onPressed: () => Navigator.pop(dialogContext), child: const Text('बंद करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)))),
         ],
       ),
