@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:audioplayers/audioplayers.dart';
 import '/backend/supabase/supabase.dart';
 import '/auth/custom_auth/auth_util.dart';
@@ -18,7 +20,8 @@ class WorkerJobFeedWidget extends StatefulWidget {
 class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
   late Future<List<Map<String, dynamic>>> future;
   final player = AudioPlayer();
-  bool busy = false;
+  final Set<String> _busyJobs = <String>{};
+  final Map<String, String> _submittedActions = <String, String>{};
 
   @override
   void initState() {
@@ -55,8 +58,12 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
   }
 
   Future<void> _request(String jobId, String type, {double? offer}) async {
-    if (busy) return;
-    setState(() => busy = true);
+    if (_busyJobs.contains(jobId) || _submittedActions.containsKey(jobId)) {
+      return;
+    }
+
+    setState(() => _busyJobs.add(jobId));
+
     try {
       await SupaFlow.client.rpc(
         'create_worker_request',
@@ -66,28 +73,31 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
           'p_offered_amount': offer,
         },
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              type == 'accept'
-                  ? 'मालिक को अनुरोध भेज दिया गया।'
-                  : type == 'negotiate'
-                      ? 'बातचीत का अनुरोध भेज दिया गया।'
-                      : 'जॉब अस्वीकार कर दी गई।',
-            ),
-          ),
-        );
-        setState(() => future = _load());
+
+      if (!mounted) return;
+
+      if (type == 'reject') {
+        // A rejected job must disappear from this worker's feed.
+        final next = _load();
+        setState(() {
+          _busyJobs.remove(jobId);
+          future = next;
+        });
+        return;
       }
+
+      // Accept / negotiate stays visible but becomes permanently locked.
+      setState(() {
+        _busyJobs.remove(jobId);
+        _submittedActions[jobId] = type;
+      });
     } catch (e) {
       if (mounted) {
+        setState(() => _busyJobs.remove(jobId));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(_friendlyError(e))),
         );
       }
-    } finally {
-      if (mounted) setState(() => busy = false);
     }
   }
 
@@ -107,6 +117,10 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
   }
 
   Future<void> _negotiate(String jobId) async {
+    if (_busyJobs.contains(jobId) || _submittedActions.containsKey(jobId)) {
+      return;
+    }
+
     final c = TextEditingController();
     final v = await showDialog<double>(
       context: context,
@@ -140,7 +154,279 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
       ),
     );
     c.dispose();
-    if (v != null) await _request(jobId, 'negotiate', offer: v);
+    if (v != null && mounted) {
+      await _request(jobId, 'negotiate', offer: v);
+    }
+  }
+
+  String _actionMessage(String type) {
+    if (type == 'accept') {
+      return 'स्वीकार करने का अनुरोध मालिक को भेज दिया गया है';
+    }
+    return 'बातचीत का अनुरोध मालिक को भेज दिया गया है';
+  }
+
+  Color _actionColor(String type) {
+    return type == 'accept'
+        ? const Color(0xFF16A34A)
+        : const Color(0xFFF59E0B);
+  }
+
+  Widget _jobCard(BuildContext context, Map<String, dynamic> j) {
+    final t = FlutterFlowTheme.of(context);
+    final jobId = j['id'].toString();
+    final audio = (j['audio_note'] ?? '').toString();
+    final submitted = _submittedActions[jobId];
+    final isBusy = _busyJobs.contains(jobId);
+    final locked = submitted != null;
+
+    final cardContent = Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FutureBuilder<String?>(
+            future: _signed('${j['work_photo'] ?? ''}'),
+            builder: (c, img) {
+              if (!img.hasData) {
+                return const SizedBox(
+                  height: 130,
+                  child: Center(
+                    child: Icon(Icons.image_outlined, size: 40),
+                  ),
+                );
+              }
+
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  img.data!,
+                  height: 170,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) {
+                    return const SizedBox(
+                      height: 130,
+                      child: Center(
+                        child: Icon(Icons.broken_image_outlined, size: 40),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '${j['title']}',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '${j['profession_name']} • ${j['location_name']}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'मालिक: ${j['owner_name']}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          if ((j['description'] ?? '').toString().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '${j['description']}',
+              style: const TextStyle(fontSize: 16),
+            ),
+          ],
+          if (audio.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 54,
+              child: OutlinedButton.icon(
+                onPressed: isBusy ? null : () => _play(audio),
+                icon: const Icon(Icons.play_arrow_outlined, size: 28),
+                label: const Text(
+                  'ऑडियो सुनें',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFDC2626),
+                      side: const BorderSide(
+                        color: Color(0xFFDC2626),
+                        width: 2,
+                      ),
+                    ),
+                    onPressed: isBusy || locked
+                        ? null
+                        : () => _request(jobId, 'reject'),
+                    child: const Text(
+                      'अस्वीकार करें',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFF59E0B),
+                      side: const BorderSide(
+                        color: Color(0xFFF59E0B),
+                        width: 2,
+                      ),
+                    ),
+                    onPressed: isBusy || locked
+                        ? null
+                        : () => _negotiate(jobId),
+                    child: const Text(
+                      'बातचीत करें',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SizedBox(
+                  height: 56,
+                  child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: isBusy || locked
+                        ? null
+                        : () => _request(jobId, 'accept'),
+                    child: const Text(
+                      'स्वीकार करें',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return Card(
+      color: t.secondaryBackground,
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: t.alternate),
+      ),
+      child: Stack(
+        children: [
+          cardContent,
+          if (isBusy)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.45),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ),
+          if (locked)
+            Positioned.fill(
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                  child: Container(
+                    color: Colors.white.withOpacity(0.62),
+                    padding: const EdgeInsets.all(20),
+                    child: Center(
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 22,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.94),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _actionColor(submitted!),
+                            width: 3,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              submitted == 'accept'
+                                  ? Icons.check_circle
+                                  : Icons.forum,
+                              size: 58,
+                              color: _actionColor(submitted),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _actionMessage(submitted),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: _actionColor(submitted),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'अब इस जॉब पर दोबारा कोई बटन नहीं दबाया जा सकता।\nमालिक के जवाब का इंतजार करें।',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -152,7 +438,11 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
         title: 'जॉब्स',
         showWorkerLocation: true,
         onWorkerLocationChanged: () {
-          if (mounted) setState(() => future = _load());
+          if (mounted) {
+            setState(() {
+              future = _load();
+            });
+          }
         },
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -182,201 +472,17 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
 
           return RefreshIndicator(
             onRefresh: () async {
-              setState(() => future = _load());
-              await future;
+              final next = _load();
+              setState(() {
+                future = next;
+              });
+              await next;
             },
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: jobs.length,
               separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (context, i) {
-                final j = jobs[i];
-                final audio = (j['audio_note'] ?? '').toString();
-
-                return Card(
-                  color: t.secondaryBackground,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    side: BorderSide(color: t.alternate),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        FutureBuilder<String?>(
-                          future: _signed('${j['work_photo'] ?? ''}'),
-                          builder: (c, img) {
-                            if (!img.hasData) {
-                              return const SizedBox(
-                                height: 130,
-                                child: Center(
-                                  child: Icon(Icons.image_outlined, size: 40),
-                                ),
-                              );
-                            }
-
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                img.data!,
-                                height: 170,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) {
-                                  return const SizedBox(
-                                    height: 130,
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.broken_image_outlined,
-                                        size: 40,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '${j['title']}',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '₹${j['expected_amount']} • ${j['job_date']} • ${j['start_time']}',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '${j['profession_name']} • ${j['location_name']}',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'मालिक: ${j['owner_name']}',
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        if ((j['description'] ?? '').toString().isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            '${j['description']}',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ],
-                        if (audio.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: OutlinedButton.icon(
-                              onPressed: busy ? null : () => _play(audio),
-                              icon: const Icon(
-                                Icons.play_arrow_outlined,
-                                size: 28,
-                              ),
-                              label: const Text(
-                                'ऑडियो सुनें',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 56,
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFFDC2626),
-                                    side: const BorderSide(
-                                      color: Color(0xFFDC2626),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  onPressed: busy
-                                      ? null
-                                      : () => _request(
-                                            j['id'].toString(),
-                                            'reject',
-                                          ),
-                                  child: const Text(
-                                    'अस्वीकार करें',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: SizedBox(
-                                height: 56,
-                                child: OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFFF59E0B),
-                                    side: const BorderSide(
-                                      color: Color(0xFFF59E0B),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  onPressed: busy
-                                      ? null
-                                      : () => _negotiate(j['id'].toString()),
-                                  child: const Text(
-                                    'बातचीत करें',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: SizedBox(
-                                height: 56,
-                                child: FilledButton(
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: const Color(0xFF16A34A),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  onPressed: busy
-                                      ? null
-                                      : () => _request(
-                                            j['id'].toString(),
-                                            'accept',
-                                          ),
-                                  child: const Text(
-                                    'स्वीकार करें',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+              itemBuilder: (context, i) => _jobCard(context, jobs[i]),
             ),
           );
         },
