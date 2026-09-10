@@ -76,24 +76,56 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
       final rows = await SupaFlow.client.from('chaupal_locations').select('id,display_name').eq('active', true).order('id');
       final locations = (rows as List).map((r) => Map<String, dynamic>.from(r as Map)).toList();
       if (!context.mounted) return;
-      final selected = await showDialog<int>(context: context, builder: (dialogContext) => AlertDialog(title: const Text('अपनी चौपाल बदलें', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)), content: SizedBox(width: 420, child: DropdownButtonFormField<int>(value: locations.any((x) => (x['id'] as num).toInt() == currentId) ? currentId : null, isExpanded: true, decoration: const InputDecoration(labelText: 'चौपाल स्थान', border: OutlineInputBorder()), items: locations.map((x) => DropdownMenuItem<int>(value: (x['id'] as num).toInt(), child: Text('${x['display_name']}'))).toList(), onChanged: (v) { if (v != null) Navigator.pop(dialogContext, v); })), actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('रद्द करें'))]));
+      final selected = await showDialog<int>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('अपनी चौपाल बदलें', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+          content: SizedBox(width: 420, child: DropdownButtonFormField<int>(
+            value: locations.any((x) => (x['id'] as num).toInt() == currentId) ? currentId : null,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'चौपाल स्थान', border: OutlineInputBorder()),
+            items: locations.map((x) => DropdownMenuItem<int>(value: (x['id'] as num).toInt(), child: Text('${x['display_name']}'))).toList(),
+            onChanged: (v) { if (v != null) Navigator.pop(dialogContext, v); },
+          )),
+          actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('रद्द करें'))],
+        ),
+      );
       if (selected == null) return;
       await SupaFlow.client.rpc('update_my_worker_location', params: {'p_chaupal_location_id': selected});
-      if (context.mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('चौपाल स्थान बदल दिया गया है। अब जॉब्स इसी चौपाल के अनुसार मिलेंगी।'))); onWorkerLocationChanged?.call(); }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('चौपाल स्थान बदल दिया गया है। अब जॉब्स इसी चौपाल के अनुसार मिलेंगी।')));
+        onWorkerLocationChanged?.call();
+      }
     } catch (e) {
       if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('चौपाल बदल नहीं सकी: $e')));
     }
   }
 
-  @override Size get preferredSize => const Size.fromHeight(76);
+  @override
+  Size get preferredSize => const Size.fromHeight(76);
 
   @override
   Widget build(BuildContext context) {
     final theme = FlutterFlowTheme.of(context);
     return AppBar(
-      backgroundColor: theme.primaryBackground, foregroundColor: theme.primaryText, elevation: 0, toolbarHeight: 76, titleSpacing: 0,
+      backgroundColor: theme.primaryBackground,
+      foregroundColor: theme.primaryText,
+      elevation: 0,
+      toolbarHeight: 76,
+      titleSpacing: 0,
       leadingWidth: showBack ? 84 : 0,
-      leading: showBack ? _HeaderAction(icon: Icons.arrow_back_rounded, label: 'पीछे जाएँ', backgroundColor: const Color(0xFF1976D2), onTap: () { if (context.canPop()) { context.pop(); } else { context.goNamed(RoleSelectionWidget.routeName); } }) : null,
+      leading: showBack ? _HeaderAction(
+        icon: Icons.arrow_back_rounded,
+        label: 'पीछे जाएँ',
+        backgroundColor: const Color(0xFF1976D2),
+        onTap: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.goNamed(RoleSelectionWidget.routeName);
+          }
+        },
+      ) : null,
       title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
       actions: [
         if (showWorkerLocation) _HeaderAction(icon: Icons.location_on_outlined, label: 'चौपाल बदलें', backgroundColor: const Color(0xFFF59E0B), onTap: () => _changeWorkerLocation(context)),
@@ -109,11 +141,54 @@ class ChaupalAppHeader extends StatelessWidget implements PreferredSizeWidget {
 
 class _HeaderAction extends StatelessWidget {
   const _HeaderAction({required this.icon, required this.label, required this.backgroundColor, required this.onTap});
-  final IconData icon; final String label; final Color backgroundColor; final VoidCallback onTap;
-  @override Widget build(BuildContext context) => Material(color: Colors.transparent, child: InkWell(onTap: onTap, borderRadius: BorderRadius.circular(12), child: Container(width: 78, height: 68, margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5), decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(12)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 29, color: Colors.white), const SizedBox(height: 2), Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900))])));
+  final IconData icon;
+  final String label;
+  final Color backgroundColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 78,
+          height: 68,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+          decoration: BoxDecoration(color: backgroundColor, borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 29, color: Colors.white),
+              const SizedBox(height: 2),
+              Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ProfileDetail extends StatelessWidget {
-  const _ProfileDetail({required this.label, this.value}); final String label; final String? value;
-  @override Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [SizedBox(width: 125, child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))), Expanded(child: Text(value?.isNotEmpty == true ? value! : 'उपलब्ध नहीं', style: const TextStyle(fontSize: 15)))]));
+  const _ProfileDetail({required this.label, this.value});
+  final String label;
+  final String? value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 125, child: Text('$label:', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
+          Expanded(child: Text(value?.isNotEmpty == true ? value! : 'उपलब्ध नहीं', style: const TextStyle(fontSize: 15))),
+        ],
+      ),
+    );
+  }
 }
