@@ -127,7 +127,7 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
       ? 'स्वीकार करने का अनुरोध मालिक को भेज दिया गया है'
       : 'मोल-भाव का अनुरोध मालिक को भेज दिया गया है';
 
-  String _actionHelpMessage() => 'अगर आपकी rate मालिक को पसंद आई तो काम देने वाला आपके बताए मोबाइल नंबर पर फोन करेगा और तभी आज का काम मिलेगा। नहीं तो दूसरे कामों की request भेजते रहें।';
+  String _actionHelpMessage() => 'अगर आपकी रेट मालिक को पसंद आई तो काम देने वाला आपके बताए मोबाइल नंबर पर फोन करेगा और तभी आज का काम मिलेगा। नहीं तो दूसरे कामों की request भेजते रहें।';
 
   Color _actionColor(String type) => type == 'accept'
       ? const Color(0xFF16A34A)
