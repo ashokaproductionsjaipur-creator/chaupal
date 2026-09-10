@@ -4,30 +4,33 @@ $p = Join-Path (Get-Location) 'lib/pages/worker_job_feed/worker_job_feed_widget.
 if (-not (Test-Path $p)) { throw "Worker job feed file not found: $p" }
 $s = Get-Content -Raw -Encoding UTF8 $p
 
-# Track explicit worker cancellation.
+# 1) Track explicit worker cancellation.
 if (-not $s.Contains("bool cancelled = false;")) {
   $old = "      bool finalized = false;"
   if (-not $s.Contains($old)) { throw 'Could not find the confirmation state variables.' }
   $s = $s.Replace($old, "      bool finalized = false;`r`n      bool cancelled = false;")
 }
 
-# Make the orange button explicitly mark FINALIZE before closing.
+# 2) Make the orange button explicitly mark FINALIZE before closing.
 if (-not $s.Contains("finalized = true;")) {
-  $pattern = "(?s)(onPressed:\s*)\(\)\s*=>\s*Navigator\.pop\(c\),\s*(style:\s*FilledButton\.styleFrom\(\s*backgroundColor:\s*const Color\(0xFFFF8C00\),)"
-  $replacement = '$1() {`r`n                finalized = true;`r`n                Navigator.pop(c);`r`n              },`r`n                $2'
+  $pattern = "(?s)(onPressed:\s*)\(\)\s*=>\s*Navigator\.pop\(c\),"
+  $replacement = '$1() {`r`n                finalized = true;`r`n                Navigator.pop(c);`r`n              },'
   $newS = [regex]::Replace($s, $pattern, $replacement, 1)
-  if ($newS -eq $s) { throw 'Could not find the orange worker final-confirm button.' }
+  if ($newS -eq $s) { throw 'Could not find the worker final-confirm button.' }
   $s = $newS
 }
 
-# Add cancel button after existing final-confirm helper label.
+# 3) Add cancel button directly after the visible final-confirm helper text.
 if (-not $s.Contains("डील कैंसल करें")) {
-  $marker = "const Text('(काम फाइनल करें)',"
+  $marker = "काम फाइनल करें"
   $idx = $s.IndexOf($marker)
-  if ($idx -lt 0) { throw 'Could not find the final-confirm helper label.' }
-  $lineEnd = $s.IndexOf("),", $idx)
-  if ($lineEnd -lt 0) { throw 'Could not locate the end of the final-confirm helper label.' }
-  $insertAt = $lineEnd + 2
+  if ($idx -lt 0) { throw 'Could not find the final-confirm helper text.' }
+
+  # Find the end of the Text(...) statement containing the helper text.
+  $close = $s.IndexOf("),", $idx)
+  if ($close -lt 0) { throw 'Could not locate the end of the helper Text widget.' }
+  $insertAt = $close + 2
+
   $button = @"
               const SizedBox(height: 10),
               SizedBox(
@@ -51,9 +54,9 @@ if (-not $s.Contains("डील कैंसल करें")) {
   $s = $s.Insert($insertAt, "`r`n$button")
 }
 
-# Route cancel through the backend RPC before finalize.
+# 4) Cancel must call the backend before finalize.
 if (-not $s.Contains("'cancel_worker_job_confirmation'")) {
-  $pattern = "(?s)(\s+if \(!mounted\) return;\s+)await SupaFlow\.client\.rpc\(\s*'finalize_worker_job_confirmation_v2',\s*params: \{'p_job_id': '\$\{j\['job_id'\]\}'\},\s*\);"
+  $pattern = "(?s)(\s+if \(!mounted\) return;\s+)await SupaFlow\.client\.rpc\(\s*'finalize_worker_job_confirmation_v2',\s*params:\s*\{'p_job_id': '\$\{j\['job_id'\]\}'\},\s*\);"
   $replacement = @"
         if (!mounted) return;
         if (cancelled) {
