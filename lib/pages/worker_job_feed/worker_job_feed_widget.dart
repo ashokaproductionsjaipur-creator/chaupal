@@ -22,11 +22,23 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
   final player = AudioPlayer();
   final Set<String> _busyJobs = <String>{};
   final Map<String, String> _submittedActions = <String, String>{};
+  bool _confirmationDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
     future = _load();
+    _startConfirmationWatcher();
+  }
+
+  void _startConfirmationWatcher() {
+    Future<void>(() async {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      while (mounted) {
+        await _showPendingConfirmation();
+        await Future<void>.delayed(const Duration(seconds: 3));
+      }
+    });
   }
 
   @override
@@ -284,7 +296,173 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
           const SizedBox(height: 6),
           Text(_actionHelpMessage(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12.5, height: 1.25, fontWeight: FontWeight.w600)),
           const SizedBox(height: 5),
-          const Text('मालिक के जवाब का इंतजार करें। इस जॉब पर दोबारा कोई action नहीं किया जा सकता।', textAlign: TextAlign.center, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+          const Text('मालिक के जवाब का इंतजार करें। इस जॉब पर दोबारा कोई action नहीं किया जा सकता।', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showPendingConfirmation() async {
+    if (!mounted || currentUserUid.isEmpty || _confirmationDialogOpen) return;
+    try {
+      final rows = await SupaFlow.client.rpc('get_pending_worker_confirmation_details');
+      final list = List<Map<String, dynamic>>.from(rows as List);
+      if (!mounted || list.isEmpty || _confirmationDialogOpen) return;
+
+      final j = list.first;
+      _confirmationDialogOpen = true;
+      bool finalized = false;
+
+      try {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (c) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 520, maxHeight: 760),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF009C3B), Color(0xFF16A34A), Color(0xFF087F3D)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: const [BoxShadow(blurRadius: 28, spreadRadius: 3, offset: Offset(0, 10))],
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+                child: Column(
+                  children: [
+                    const Text(
+                      'अपना सौदा पक्का करें',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+                      decoration: BoxDecoration(color: const Color(0xFFFFF7B2), borderRadius: BorderRadius.circular(24)),
+                      child: const Text('काम तय हो गया है!', style: TextStyle(color: Color(0xFF14532D), fontSize: 21, fontWeight: FontWeight.w900)),
+                    ),
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22)),
+                      child: Column(
+                        children: [
+                          if ('${j['work_photo'] ?? ''}'.trim().isNotEmpty) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: FutureBuilder<String?>(
+                                future: _signed('${j['work_photo'] ?? ''}'),
+                                builder: (context, snap) {
+                                  if (snap.hasData) {
+                                    return Image.network(
+                                      snap.data!,
+                                      height: 150,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const SizedBox(
+                                        height: 100,
+                                        child: Center(child: Icon(Icons.image_not_supported, size: 40)),
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          _dealDetail('🔨', 'काम का नाम', '${j['title'] ?? ''}'),
+                          _dealDetail('💰', 'तय रकम', '₹${j['final_amount'] ?? ''}'),
+                          _dealDetail('📅', 'काम की तारीख', '${j['job_date'] ?? ''}'),
+                          _dealDetail('⏰', 'समय', '${j['start_time'] ?? ''}'.split('.').first),
+                          _dealDetail('👤', 'मालिक का नाम', '${j['owner_name'] ?? ''}'),
+                          _dealDetail('📞', 'मालिक का मोबाइल नंबर', '${j['owner_mobile'] ?? ''}'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('🤝', style: TextStyle(fontSize: 70)),
+                    const Text(
+                      'आपका भरोसा  •  हमारी साझेदारी',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFDE7),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFFFD54F), width: 2),
+                      ),
+                      child: const Text(
+                        'आपने मालिक से इस काम के बारे में फोन पर बात कर ली है और आपके बीच रेट भी तय हो गई है।\n\nअगर आप इस सौदे को पक्का करना चाहते हैं तो नीचे दिए गए “सौदा पक्का करें” बटन को दबाएँ।',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.black87, fontSize: 18, height: 1.35, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 64,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.pop(c),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF8C00),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(34)),
+                        ),
+                        icon: const Icon(Icons.check_circle, size: 30),
+                        label: const Text('सौदा पक्का करें  →', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text('(काम फाइनल करें)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        if (!mounted) return;
+        await SupaFlow.client.rpc(
+          'finalize_worker_job_confirmation_v2',
+          params: {'p_job_id': '${j['job_id']}'},
+        );
+        finalized = true;
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('काम पक्का हो गया। इस तारीख की दूसरी जॉब अब नहीं ली जा सकती।')),
+        );
+        setState(() => future = _load());
+      } finally {
+        if (finalized || mounted) _confirmationDialogOpen = false;
+      }
+    } catch (e) {
+      _confirmationDialogOpen = false;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_friendlyError(e))),
+        );
+      }
+    }
+  }
+
+  Widget _dealDetail(String icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          SizedBox(width: 34, child: Text(icon, style: const TextStyle(fontSize: 23))),
+          Expanded(flex: 4, child: Text('$label:', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+          Expanded(flex: 6, child: Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900))),
         ],
       ),
     );
