@@ -7,10 +7,6 @@ marker = "  Widget _jobCard(FlutterFlowTheme t, Map<String, dynamic> j) {"
 if marker not in s:
     raise SystemExit('job card marker not found')
 
-helper_marker = "  Widget _requestPage(FlutterFlowTheme t) {"
-if helper_marker not in s:
-    raise SystemExit('request page marker not found')
-
 helper = r'''  Widget _ownerAudioSection(String audio) {
     final hasAudio = audio.isNotEmpty && audio != 'null';
     return Container(
@@ -61,7 +57,7 @@ helper = r'''  Widget _ownerAudioSection(String audio) {
 
 '''
 if '_ownerAudioSection(String audio)' not in s:
-    s = s.replace(helper_marker, helper + helper_marker, 1)
+    s = s.replace(marker, helper + marker, 1)
 
 old = """              Text('तारीख: ${j['job_date'] ?? '-'}   •   समय: ${j['start_time'] ?? '-'}', style: const TextStyle(fontSize: 15)),
               const SizedBox(height: 12),
