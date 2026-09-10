@@ -327,16 +327,8 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
             const SizedBox(height: 8),
             Text('${j['description']}', style: const TextStyle(fontSize: 16)),
           ],
-          if (audio.isNotEmpty) ...[
-            const SizedBox(height: 10),
-            SizedBox(width: double.infinity, height: 54,
-              child: OutlinedButton.icon(
-                onPressed: isBusy ? null : () => _play(audio),
-                icon: const Icon(Icons.play_arrow_outlined, size: 28),
-                label: const Text('काम और मोल की जानकारी यहाँ सुनें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
+          const SizedBox(height: 10),
+          _audioNoteBox(context, audio),
           const SizedBox(height: 10),
           Row(children: [
             Expanded(child: SizedBox(height: 56, child: OutlinedButton(
