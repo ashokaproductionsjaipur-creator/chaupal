@@ -13,9 +13,11 @@ if (-not $s.Contains("bool cancelled = false;")) {
 
 # 2) The orange button must explicitly mark FINALIZE before closing the dialog.
 if (-not $s.Contains("finalized = true;")) {
-  $old = "onPressed: () => Navigator.pop(c),"
-  if (-not $s.Contains($old)) { throw 'Could not find the worker final-confirm button.' }
-  $s = $s.Replace($old, "onPressed: () {`r`n                finalized = true;`r`n                Navigator.pop(c);`r`n              },", 1)
+  $pattern = "(?s)(onPressed:\s*)\(\)\s*=>\s*Navigator\.pop\(c\),\s*(style:\s*FilledButton\.styleFrom\(\s*backgroundColor:\s*const Color\(0xFFFF8C00\),)"
+  $replacement = '$1() {`r`n                finalized = true;`r`n                Navigator.pop(c);`r`n              },`r`n                $2'
+  $newS = [regex]::Replace($s, $pattern, $replacement, 1)
+  if ($newS -eq $s) { throw 'Could not find the orange worker final-confirm button.' }
+  $s = $newS
 }
 
 # 3) Add a clearly separate cancel button immediately below the final-confirm area.
