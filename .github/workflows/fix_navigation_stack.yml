@@ -1,0 +1,28 @@
+name: Fix navigation stack
+
+on:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Apply navigation stack fix') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+      - name: Patch page navigation
+        run: python3 scripts/fix_navigation_stack.py
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/pages
+          git diff --cached --quiet && exit 0
+          git commit -m "Apply navigation stack fix"
+          git push origin develop
