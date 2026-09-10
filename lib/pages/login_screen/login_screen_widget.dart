@@ -108,11 +108,11 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
       );
       if (!mounted) return;
       if (actualRole == 'owner') {
-        context.goNamed(OwnerDashboardWidget.routeName);
+        context.pushNamed(OwnerDashboardWidget.routeName);
       } else if (accountStatus == 'active') {
-        context.goNamed(WorkerJobFeedWidget.routeName);
+        context.pushNamed(WorkerJobFeedWidget.routeName);
       } else {
-        context.goNamed(WorkerProfileStatusWidget.routeName);
+        context.pushNamed(WorkerProfileStatusWidget.routeName);
       }
     } catch (e) {
       final raw = e.toString();
@@ -161,7 +161,7 @@ class _LoginScreenWidgetState extends State<LoginScreenWidget> {
                 const SizedBox(height: 26),
                 Row(children: [Expanded(child: Divider(color: t.alternate)), Padding(padding: const EdgeInsets.symmetric(horizontal: 13), child: Text('OR', style: TextStyle(color: t.secondaryText, fontSize: 11, fontWeight: FontWeight.w700))), Expanded(child: Divider(color: t.alternate))]),
                 const SizedBox(height: 22),
-                Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(20), border: Border.all(color: t.alternate)), child: Column(children: [const Text('पहली बार CHAUPAL पर?', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text('अपना Owner या Worker account बनाएं', style: TextStyle(color: t.secondaryText, fontSize: 11.5)), const SizedBox(height: 12), SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => context.goNamed(WorkerRegistrationWidget.routeName), child: const Text('Create Account  |  नया अकाउंट बनाएं', style: TextStyle(fontWeight: FontWeight.w800))))])),
+                Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: t.secondaryBackground, borderRadius: BorderRadius.circular(20), border: Border.all(color: t.alternate)), child: Column(children: [const Text('पहली बार CHAUPAL पर?', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text('अपना Owner या Worker account बनाएं', style: TextStyle(color: t.secondaryText, fontSize: 11.5)), const SizedBox(height: 12), SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () => context.pushNamed(WorkerRegistrationWidget.routeName), child: const Text('Create Account  |  नया अकाउंट बनाएं', style: TextStyle(fontWeight: FontWeight.w800))))])),
                 const SizedBox(height: 22),
                 Text('Secure • Verified • Local marketplace', textAlign: TextAlign.center, style: TextStyle(color: t.secondaryText, fontSize: 10.5)),
                 const SizedBox(height: 5),

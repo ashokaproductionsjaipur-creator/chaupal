@@ -180,9 +180,9 @@ class _WorkerRegistrationWidgetState extends State<WorkerRegistrationWidget> {
 
       // Route strictly from the authoritative server role/status.
       if (registeredRole == 'worker') {
-        context.goNamed(WorkerProfileStatusWidget.routeName);
+        context.pushNamed(WorkerProfileStatusWidget.routeName);
       } else if (registeredRole == 'owner' && registeredStatus == 'active') {
-        context.goNamed(OwnerDashboardWidget.routeName);
+        context.pushNamed(OwnerDashboardWidget.routeName);
       } else {
         throw Exception('Owner account is not active.');
       }

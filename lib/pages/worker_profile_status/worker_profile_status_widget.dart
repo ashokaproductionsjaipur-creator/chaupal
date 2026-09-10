@@ -145,7 +145,7 @@ class _WorkerProfileStatusWidgetState
                   height: 50,
                   child: FilledButton(
                     onPressed: () =>
-                        context.goNamed(WorkerJobFeedWidget.routeName),
+                        context.pushNamed(WorkerJobFeedWidget.routeName),
                     child: const Text(
                       'View Matching Jobs | Jobs देखें',
                     ),

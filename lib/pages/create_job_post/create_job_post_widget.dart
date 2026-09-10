@@ -456,7 +456,7 @@ class _CreateJobPostWidgetState extends State<CreateJobPostWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('जॉब सफलतापूर्वक पोस्ट हो गई।')),
       );
-      context.goNamed(JobRequestManagementWidget.routeName);
+      context.pushNamed(JobRequestManagementWidget.routeName);
     } catch (e) {
       try {
         if (photoPath != null) await SupaFlow.client.storage.from('job-media').remove([photoPath!]);

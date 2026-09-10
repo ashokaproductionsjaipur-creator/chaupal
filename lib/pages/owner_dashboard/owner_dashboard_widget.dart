@@ -106,7 +106,7 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                 SizedBox(
                   height: 52,
                   child: FilledButton.icon(
-                    onPressed: () => context.goNamed(CreateJobPostWidget.routeName),
+                    onPressed: () => context.pushNamed(CreateJobPostWidget.routeName),
                     icon: const Icon(Icons.add),
                     label: const Text('Create Job | जॉब पोस्ट करो'),
                   ),
@@ -139,7 +139,7 @@ class _OwnerDashboardWidgetState extends State<OwnerDashboardWidget> {
                           children: [Text('${j['status']}'), Text('${j['pending_requests']} requests')],
                         ),
                       ),
-                      onTap: () => context.goNamed(JobRequestManagementWidget.routeName),
+                      onTap: () => context.pushNamed(JobRequestManagementWidget.routeName),
                     ),
                   );
                 }).toList(),
