@@ -100,7 +100,7 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
     final v = await showDialog<double>(
       context: context,
       builder: (x) => AlertDialog(
-        title: const Text('बातचीत करें'),
+        title: const Text('मोल-भाव करें'),
         content: TextField(
           controller: c,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -125,9 +125,9 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
 
   String _actionMessage(String type) => type == 'accept'
       ? 'स्वीकार करने का अनुरोध मालिक को भेज दिया गया है'
-      : 'बातचीत का अनुरोध मालिक को भेज दिया गया है';
+      : 'मोल-भाव का अनुरोध मालिक को भेज दिया गया है';
 
-  String _actionHelpMessage() => 'अगर आपकी राय मालिक को पसंद आई तो काम देने वाला आपके बताए मोबाइल नंबर पर फोन करेगा और तभी आज का काम मिलेगा। नहीं तो दूसरे कामों की request भेजते रहें।';
+  String _actionHelpMessage() => 'अगर आपकी rate मालिक को पसंद आई तो काम देने वाला आपके बताए मोबाइल नंबर पर फोन करेगा और तभी आज का काम मिलेगा। नहीं तो दूसरे कामों की request भेजते रहें।';
 
   Color _actionColor(String type) => type == 'accept'
       ? const Color(0xFF16A34A)
@@ -190,7 +190,7 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
             Expanded(child: SizedBox(height: 56, child: OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF59E0B), side: const BorderSide(color: Color(0xFFF59E0B), width: 2)),
               onPressed: isBusy || locked ? null : () => _negotiate(jobId),
-              child: const Text('बातचीत करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              child: const Text('मोल-भाव करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 56, child: FilledButton(
