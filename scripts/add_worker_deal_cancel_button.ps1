@@ -5,37 +5,23 @@ if (-not (Test-Path $p)) { throw "Worker job feed file not found: $p" }
 $s = Get-Content -Raw -Encoding UTF8 $p
 
 # 1) Track whether the worker explicitly cancelled the confirmation dialog.
-$old = "      bool finalized = false;"
-$new = "      bool finalized = false;`r`n      bool cancelled = false;"
-if ($s.Contains($old) -and -not $s.Contains("bool cancelled = false;")) {
-  $s = $s.Replace($old, $new)
+if (-not $s.Contains("bool cancelled = false;")) {
+  $old = "      bool finalized = false;"
+  if (-not $s.Contains($old)) { throw 'Could not find the confirmation state variables.' }
+  $s = $s.Replace($old, "      bool finalized = false;`r`n      bool cancelled = false;")
 }
 
 # 2) The orange button must explicitly mark FINALIZE before closing the dialog.
-$old = """              onPressed: () => Navigator.pop(c),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF8C00),"""
-$new = """              onPressed: () {
-                finalized = true;
-                Navigator.pop(c);
-              },
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF8C00),"""
-if ($s.Contains($old)) {
-  $s = $s.Replace($old, $new)
-} elseif (-not $s.Contains("finalized = true;")) {
-  throw 'Could not find the worker final-confirm button.'
+if (-not $s.Contains("finalized = true;")) {
+  $old = "onPressed: () => Navigator.pop(c),"
+  if (-not $s.Contains($old)) { throw 'Could not find the worker final-confirm button.' }
+  $s = $s.Replace($old, "onPressed: () {`r`n                finalized = true;`r`n                Navigator.pop(c);`r`n              },", 1)
 }
 
-# 3) Add a clearly separate cancel button immediately below the final-confirm button.
-$anchor = """              label: const Text('सौदा पक्का करें  →', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
-              ),
-              const SizedBox(height: 6),
-              const Text('(काम फाइनल करें)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),"""
-$replacement = """              label: const Text('सौदा पक्का करें  →', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
-              ),
-              const SizedBox(height: 6),
-              const Text('(काम फाइनल करें)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),
+# 3) Add a clearly separate cancel button immediately below the final-confirm area.
+if (-not $s.Contains("डील कैंसल करें")) {
+  $pattern = "(?s)(\s+const SizedBox\(height: 6\),\s+const Text\('\(काम फाइनल करें\)'.*?\),)"
+  $button = @"
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
@@ -53,20 +39,24 @@ $replacement = """              label: const Text('सौदा पक्का 
                   icon: const Icon(Icons.cancel_outlined, size: 22),
                   label: const Text('डील कैंसल करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                 ),
-              ),"""
-if ($s.Contains($anchor) -and -not $s.Contains("डील कैंसल करें")) {
-  $s = $s.Replace($anchor, $replacement)
-} elseif (-not $s.Contains("डील कैंसल करें")) {
-  throw 'Could not find the confirmation button area for inserting the cancel button.'
+              ),
+"@
+  $newS = [regex]::Replace($s, $pattern, '$1' + $button, 1)
+  if ($newS -eq $s) { throw 'Could not find the confirmation button area for inserting the cancel button.' }
+  $s = $newS
 }
 
 # 4) Cancel must call the backend first. This clears every confirmation/finalize condition.
-$anchor = """        if (!mounted) return;
+if (-not $s.Contains("'cancel_worker_job_confirmation'")) {
+  $anchor = @"
+        if (!mounted) return;
         await SupaFlow.client.rpc(
           'finalize_worker_job_confirmation_v2',
           params: {'p_job_id': '${j['job_id']}'},
-        );"""
-$replacement = """        if (!mounted) return;
+        );
+"@
+  $replacement = @"
+        if (!mounted) return;
         if (cancelled) {
           await SupaFlow.client.rpc(
             'cancel_worker_job_confirmation',
@@ -82,11 +72,10 @@ $replacement = """        if (!mounted) return;
         await SupaFlow.client.rpc(
           'finalize_worker_job_confirmation_v2',
           params: {'p_job_id': '${j['job_id']}'},
-        );"""
-if ($s.Contains($anchor)) {
+        );
+"@
+  if (-not $s.Contains($anchor)) { throw 'Could not find the finalize RPC block.' }
   $s = $s.Replace($anchor, $replacement)
-} elseif (-not $s.Contains("'cancel_worker_job_confirmation'")) {
-  throw 'Could not find the finalize RPC block.'
 }
 
 Set-Content -Path $p -Value $s -Encoding UTF8
