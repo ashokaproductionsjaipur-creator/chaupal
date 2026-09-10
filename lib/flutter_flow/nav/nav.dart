@@ -50,7 +50,10 @@ Widget _homeForUser(AppStateNotifier n) {
     final status = (n.user?.userData?.accountStatus ?? '').toLowerCase();
     return status == 'active' ? WorkerJobFeedWidget() : WorkerProfileStatusWidget();
   }
-  return OwnerDashboardWidget();
+  if (role == 'owner') return OwnerDashboardWidget();
+  // During registration the auth event can arrive before the authoritative
+  // public.users profile is loaded. Never default that incomplete state to Owner.
+  return WorkerProfileStatusWidget();
 }
 
 GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
