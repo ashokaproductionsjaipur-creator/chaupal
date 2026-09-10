@@ -133,6 +133,93 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
       ? const Color(0xFF16A34A)
       : const Color(0xFFF59E0B);
 
+  Widget _lockedJobSummary(BuildContext context, Map<String, dynamic> j, String submitted) {
+    final photoPath = '${j['work_photo'] ?? ''}';
+    final title = '${j['title'] ?? 'जॉब'}';
+    final profession = '${j['profession_name'] ?? ''}';
+    final location = '${j['location_name'] ?? ''}';
+    final amount = '${j['expected_amount'] ?? ''}';
+    final date = '${j['job_date'] ?? ''}';
+    final time = '${j['start_time'] ?? ''}'.split('.').first;
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 390, maxHeight: 390),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.97),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _actionColor(submitted), width: 3),
+        boxShadow: const [BoxShadow(blurRadius: 18, spreadRadius: 1, offset: Offset(0, 5))],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 82,
+                height: 62,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(9)),
+                child: FutureBuilder<String?>(
+                  future: _signed(photoPath),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return Image.network(snapshot.data!, fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image_outlined, size: 28)));
+                    }
+                    return const Center(child: Icon(Icons.image_outlined, size: 28));
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                    if (profession.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(profession, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              _summaryChip('₹$amount'),
+              _summaryChip(date),
+              _summaryChip(time),
+              if (location.isNotEmpty) _summaryChip(location),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(submitted == 'accept' ? Icons.check_circle : Icons.forum, size: 27, color: _actionColor(submitted)),
+              const SizedBox(width: 7),
+              Flexible(
+                child: Text(_actionMessage(submitted), textAlign: TextAlign.center, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: _actionColor(submitted))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(_actionHelpMessage(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13, height: 1.3, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          const Text('मालिक के जवाब का इंतजार करें। इस जॉब पर दोबारा कोई action नहीं किया जा सकता।', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+
   Widget _jobCard(BuildContext context, Map<String, dynamic> j) {
     final t = FlutterFlowTheme.of(context);
     final jobId = j['id'].toString();
@@ -190,13 +277,13 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
             Expanded(child: SizedBox(height: 56, child: OutlinedButton(
               style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF59E0B), side: const BorderSide(color: Color(0xFFF59E0B), width: 2)),
               onPressed: isBusy || locked ? null : () => _negotiate(jobId),
-              child: const Text('मोल-भाव करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              child: const Text('मोल-भाव करें', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ))),
             const SizedBox(width: 8),
             Expanded(child: SizedBox(height: 56, child: FilledButton(
               style: FilledButton.styleFrom(backgroundColor: const Color(0xFF16A34A), foregroundColor: Colors.white),
               onPressed: isBusy || locked ? null : () => _request(jobId, 'accept'),
-              child: const Text('स्वीकार करें', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+              child: const Text('स्वीकार करें', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
             ))),
           ]),
         ],
@@ -216,24 +303,9 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
             child: BackdropFilter(
               filter: ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4),
               child: Container(
-                color: Colors.white.withOpacity(0.62),
-                padding: const EdgeInsets.all(20),
-                child: Center(
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.94), borderRadius: BorderRadius.circular(16), border: Border.all(color: _actionColor(submitted!), width: 3)),
-                    child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(submitted == 'accept' ? Icons.check_circle : Icons.forum, size: 58, color: _actionColor(submitted)),
-                      const SizedBox(height: 12),
-                      Text(_actionMessage(submitted), textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _actionColor(submitted))),
-                      const SizedBox(height: 12),
-                      Text(_actionHelpMessage(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, height: 1.45, fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 12),
-                      const Text('अब इस जॉब पर दोबारा कोई बटन नहीं दबाया जा सकता। मालिक के जवाब का इंतजार करें।', textAlign: TextAlign.center, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
-                ),
+                color: Colors.white.withOpacity(0.58),
+                padding: const EdgeInsets.all(14),
+                child: Center(child: _lockedJobSummary(context, j, submitted!)),
               ),
             ),
           ),
