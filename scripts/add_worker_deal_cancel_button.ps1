@@ -11,6 +11,176 @@ $end = $s.IndexOf($endMarker, [StringComparison]::Ordinal)
 if ($start -lt 0) { throw 'Could not find _showPendingConfirmation method.' }
 if ($end -lt 0 -or $end -le $start) { throw 'Could not find confirmation method boundary.' }
 
-$base64 = @'
-ICBGdXR1cmU8dm9pZD4gX3Nob3dQZW5kaW5nQ29uZmlybWF0aW9uKCkgYXN5bmMgewogICAgaWYgKCFtb3VudGVkIHx8IGN1cnJlbnRVc2VyVWlkLmlzRW1wdHkgfHwgX2NvbmZpcm1hdGlvbkRpYWxvZ09wZW4pIHJldHVybjsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHJvd3MgPSBhd2FpdCBTdXBhRmxvdy5jbGllbnQucnBjKCdnZXRfcGVuZGluZ193b3JrZXJfY29uZmlybWF0aW9uX2RldGFpbHMnKTsKICAgICAgY29uc3QgbGlzdCA9IExpc3Q8TWFwPFN0cmluZyxkeW5hbWljPj4uZnJvbShyb3dzIGFzIExpc3QpOwogICAgICBpZiAoIW1vdW50ZWQgfHwgbGlzdC5pc0VtcHR5IHx8IF9jb25maXJtYXRpb25EaWFsb2dPcGVuKSByZXR1cm47CgogICAgICBmaW5hbCBqID0gbGlzdC5maXJzdDsKICAgICAgX2NvbmZpcm1hdGlvbkRpYWxvZ09wZW4gPSB0cnVlOwogICAgICBib29sIGZpbmFsaXplZCA9IGZhbHNlOwoKICAgICAgdHJ5IHsKICAgICAgICBmaW5hbCBjb25maXJtZWQgPSBhd2FpdCBzaG93RGlhbG9nPGJvb2w+KAogICAgICAgICAgY29udGV4dDogY29udGV4dCwKICAgICAgICAgIGJhcnJpZXJEaXNtYXNzYWJsZTogZmFsc2UsCiAgICAgICAgICBidWlsZGVyOiAoYykgPT4gRGlhbG9nKAogICAgICAgICAgICBiYWNrZ3JvdW5kQ29sb3I6IENvbG9ycy50cmFuc3BhcmVudCwKICAgICAgICAgICAgaW5zZXRQYWRkaW5nOiBjb25zdCBFZGdlSW5zZXRzLnN5bW1ldHJpYyhodG9yaXpvbnRhbDogMTgsIHZlcnRpY2FsOiAyNCksCiAgICAgICAgICAgIGNoaWxkOiBDb250YWluZXIoCiAgICAgICAgICAgICAgY29uc3RyYWludHM6IGNvbnN0IEJveENvbnN0cmFpbnRzKG1heFdpZHRoOiAzOTAsIG1heEhlaWdodDogNTQwKSwKICAgICAgICAgICAgICBkZWNvcmF0aW9uOiBCb3hEZWNvcmF0aW9uKAogICAgICAgICAgICAgICAgZ3JhZGllbnQ6IGNvbnN0IExpbmVhckdyYWRpZW50KAogICAgICAgICAgICAgICAgICBjb2xvcnM6IFtDb2xvcigweDAwOUMzQiksIENvbG9yKDB4MTZBMzRBKSwgQ29sb3IoMHgwODdGM0QpXSwKICAgICAgICAgICAgICAgICAgYmVnaW46IEFsaWduLmN0b3BDZW50ZXIsCiAgICAgICAgICAgICAgICAgIGVuZDogQWxpZ24uYm90dG9tQ2VudGVyLAogICAgICAgICAgICAgICAgKSwKICAgICAgICAgICAgICAgIGJvcmRlclJhZGl1czogQm9yZGVyUmFkaXVzLmNpcmN1bGFyKDIyKSwKICAgICAgICAgICAgICAgIGJvcmRlcjogQm9yZGVyLmFsbChjb25zdCBDb2xvcigweEZGRkZGRkYpLCB3aWR0aDogMiksCiAgICAgICAgICAgICAgICBib3hTaGFkb3c6IGNvbnN0IFtCb3hTaGFkb3coYmx1clJhZGl1czogMjIsIHNwcmVhZFJhZGl1czogMiwgb2Zmc2V0OiBPZmZzZXQoMCwgOCkpXSwKICAgICAgICAgICAgICApLAogICAgICAgICAgICAgIGNoaWxkOiBTaW5nbGVDaGlsZFNjcm9sbFZpZXcoCiAgICAgICAgICAgICAgICBwYWRkaW5nOiBjb25zdCBFZGdlSW5zZXRzLmZyb21TVDJ0b3JGb3VyKDEyLCAxMCwgMTIsIDEyKSwKICAgICAgICAgICAgICAgIGNoaWxkOiBDb2x1bW4oCiAgICAgICAgICAgICAgICAgIGNoaWxkcmVuOiBbCiAgICAgICAgICAgICAgICAgICAgY29uc3QgVGV4dCgKICAgICAgICAgICAgICAgICAgICAgICfYWRpbGluYXQgWmRlYWwgcGFjY2E/JywgCiAgICAgICAgICAgICAgICAgICAgICAgIHRleHRBbGlnbjogVGV4dEFsaWdubWVudC5jZW50ZXIsCiAgICAgICAgICAgICAgICAgICAgICAgIHN0eWxlOiBjb25zdCBUZXh0U3R5bGUoY29sb3I6IENvbG9ycy53aGl0ZSwgZm9udFNpemU6IDIzLCBmb250V2VpZ2h0OiBGb250V2VpZ2h0Lnc5MDApLAogICAgICAgICAgICAgICAgICAgICAgKSwKICAgICAgICAgICAgICAgICAgICAgIGNvbnN0IFNpemVkQm94KGhlaWdodDogNSksCiAgICAgICAgICAgICAgICAgICAgIENvbnRhaW5lcigKICAgICAgICAgICAgICAgICAgICAgIHBhZGRpbmc6IGNvbnN0IEVkZ2VJbnNldHMuc3ltbWV0cmljKGhvcml6b250YWw6IDEzLCB2ZXJ0aWNhbDogNSksCiAgICAgICAgICAgICAgICAgICAgICAgIGRlY29yYXRpb246IEJveERlY29yYXRpb24oY29sb3I6IGNvbnN0IENvbG9yKDB4RkZGN0IyKSwgYm9yZGVyUmFkaXVzOiBCb3JkZXJSYWRpdXMuY2lyY3VsYXIoMjApKSwKICAgICAgICAgICAgICAgICAgICAgICAgY2hpbGQ6IGNvbnN0IFRleHQoJ2t1ZSB0YXkgdG8gaGF5IScsIHN0eWxlOiBjb25zdCBUZXh0U3R5bGUoY29sb3I6IENvbG9yKDB4MTQ1MzJELCksIGZvbnRTaXplOiAxNywgZm9udFdlaWdodDogRm9udFdlaWdodC53OTAwKSksCiAgICAgICAgICAgICAgICAgICAgICAgICkKICAgICAgICAgICAgICAgICAgICAgICksCiAgICAgICAgICAgICAgICAgICAgY29uc3QgU2l6ZWRCb3goaGVpZ2h0OiA4KSwKICAgICAgICAgICAgICAgICAgICAgQ29udGFpbmVyKAogICAgICAgICAgICAgICAgICAgICAgIHBhZGRpbmc6IGNvbnN0IEVkZ2VJbnNldHMuYWxsKDEwKSwKICAgICAgICAgICAgICAgICAgICAgIGRlY29yYXRpb246IEJveERlY29yYXRpb24oY29sb3I6IENvbG9ycy53aGl0ZSwgYm9yZGVyUmFkaXVzOiBCb3JkZXJSYWRpdXMuY2lyY3VsYXIoMTYpKSwKICAgICAgICAgICAgICAgICAgICAgIGNoaWxkOiBDb2x1bW4oCiAgICAgICAgICAgICAgICAgICAgICAgIGNoaWxkcmVuOiBbCiAgICAgICAgICAgICAgICAgICAgICAgICAgaWYgKCcke2pbJ3dvcmtfcGhvdG9cJ10gPz8gJyd9Jy5yaW1Ucm9tKCkuaXNFbXB0eXMoKQogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBDbGlwUldldCgKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJvcmRlclJhZGl1czogQm9yZGVyUmFkaXVzLmNpcmN1bGFyKDEwKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNoaWxkOiBGdXR1cmVCdWlsZGVyPFN0cmluZz8+KAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBmdXR1cmU6IF9zaWduZWQoJyR7alsnd29ya19waG90b19dfSA/PyAnJ30nKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGJ1aWxkZXI6IChjb250ZXh0LCBzbmFwKSB7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGlmIChzbmFwLmhhc0RhdGEpIHsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJldHVybiBJbWFnZS5uZXR3b3JrKAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHNuYXAuZGF0YSEsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGhlaWdodDogODIsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHdpZHRoOiBkb3VibGUuaW5maW5pdHksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZpdDogQm94Rml0LmNvdmVyLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGVycm9yQnVpbGRlcjogKF8sIF9fLCBfXykgPT4gY29uc3QgU2l6ZWRCb3goCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGhlaWdodDogNjAsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGNoaWxkOiBDZW50ZXIoY2hpbGQ6IGNvbnN0IEljb24oSWNvbnMuaW1hZ2Vfbm90X3N1cHBvcnRlZCwgc2l6ZTogMzApKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICk7CiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHJldHVybiBjb25zdCBTaXplZEJveChoZWlnaHQ6IDYwLCBjaGlsZDogQ2VudGVyKGNoaWxkOiBDaXJjdWxhclByb2dyZXNzSW5kaWNhdG9yKCkpKTsKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgfSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICApLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgKSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICBpZiAoJHtqWyd3b3JrX3Bob3RvJ10gPz8gJyd9Jy5yaW1Ucm9tKCkuaXNFbXB0eXMoKSBjb25zdCBTaXplZEJveChoZWlnaHQ6IDcpLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgX2RlYWxEZXRhaWwoJ+KYhScsICdrYW0ga2EgbmFtYScsICcke2pbJ3RpdGxlJ10gPz8gJyd9JyksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgX2RlYWxEZXRhaWwoJ+KCrScsICd0YXkgcmFrbScsICfCv3tqe1tmaW5hbF9hbW91bnRdfScpJywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgX2RlYWxEZXRhaWwoJ+KAlScsICdrYW0ga2kgdGFyaWtfaCcsICcke2pbJ2pvYl9kYXRlJ10gPz8gJyd9JyksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgX2RlYWxEZXRhaWwoJ+KAhScsICd0aW1lJywgJyR7alsnc3RhcnRfdGltZSddID8/ICcnfScuc3BsaXQoJy4nKS5maXJzdCksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgX2RlYWxEZXRhaWwoJ+KfgycsICdtYWxpayBrYSBuYW0nLCAnJHtqWydvd25lcl9uYW1lJ10gPz8gJyd9JyksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgX2RlYWxEZXRhaWwoJ+KUtCcsICdtYWxpayBrYSBtb2JhaWwgbnVtYmVyJywgJyR7alsnb3duZXJfbW9iaWxlJ10gPz8gJyd9JyksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICksCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgXSwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgKSLA...'''
-# placeholder cannot be used
+$newMethod = @'
+  Future<void> _showPendingConfirmation() async {
+    if (!mounted || currentUserUid.isEmpty || _confirmationDialogOpen) return;
+    try {
+      final rows = await SupaFlow.client.rpc('get_pending_worker_confirmation_details');
+      final list = List<Map<String, dynamic>>.from(rows as List);
+      if (!mounted || list.isEmpty || _confirmationDialogOpen) return;
+
+      final j = list.first;
+      _confirmationDialogOpen = true;
+      bool finalized = false;
+
+      try {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (c) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 390, maxHeight: 540),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF009C3B), Color(0xFF16A34A), Color(0xFF087F3D)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: const [BoxShadow(blurRadius: 22, spreadRadius: 2, offset: Offset(0, 8))],
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                  children: [
+                    const Text(
+                      '\u{905}\u{92A}\u{928}\u{93E} \u{938}\u{94C}\u{926}\u{93E} \u{92A}\u{915}\u{94D}\u{915}\u{93E} \u{915}\u{930}\u{947}\u{902}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
+                      decoration: BoxDecoration(color: const Color(0xFFFFF7B2), borderRadius: BorderRadius.circular(20)),
+                      child: const Text(
+                        '\u{915}\u{93E}\u{92E} \u{924}\u{92F} \u{939}\u{94B} \u{917}\u{92F}\u{93E} \u{939}\u{948}!',
+                        style: TextStyle(color: Color(0xFF14532D), fontSize: 17, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                      child: Column(
+                        children: [
+                          if ('${j['work_photo'] ?? ''}'.trim().isNotEmpty)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: FutureBuilder<String?>(
+                                future: _signed('${j['work_photo'] ?? ''}'),
+                                builder: (context, snap) {
+                                  if (snap.hasData) {
+                                    return Image.network(
+                                      snap.data!,
+                                      height: 82,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const SizedBox(
+                                        height: 60,
+                                        child: Center(child: Icon(Icons.image_not_supported, size: 30)),
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()));
+                                },
+                              ),
+                            ),
+                          if ('${j['work_photo'] ?? ''}'.trim().isNotEmpty) const SizedBox(height: 7),
+                          _dealDetail('\u{1F528}', '\u{915}\u{93E}\u{92E} \u{915}\u{93E} \u{928}\u{93E}\u{92E}', '${j['title'] ?? ''}'),
+                          _dealDetail('\u{1F4B0}', '\u{924}\u{92F} \u{930}\u{915}\u{92E}', '\u{20B9}${j['final_amount'] ?? ''}'),
+                          _dealDetail('\u{1F4C5}', '\u{915}\u{93E}\u{92E} \u{915}\u{940} \u{924}\u{93E}\u{930}\u{940}\u{916}', '${j['job_date'] ?? ''}'),
+                          _dealDetail('\u{23F0}', '\u{938}\u{92E}\u{92F}', '${j['start_time'] ?? ''}'.split('.').first),
+                          _dealDetail('\u{1F464}', '\u{92E}\u{93E}\u{932}\u{93F}\u{915} \u{915}\u{93E} \u{928}\u{93E}\u{92E}', '${j['owner_name'] ?? ''}'),
+                          _dealDetail('\u{1F4DE}', '\u{92E}\u{93E}\u{932}\u{93F}\u{915} \u{915}\u{93E} \u{92E}\u{94B}\u{92C}\u{93E}\u{907}\u{932} \u{928}\u{902}\u{92C}\u{930}', '${j['owner_mobile'] ?? ''}'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '\u{906}\u{92A}\u{928}\u{947} \u{92E}\u{93E}\u{932}\u{93F}\u{915} \u{938}\u{947} \u{907}\u{938} \u{915}\u{93E}\u{92E} \u{915}\u{947} \u{92C}\u{93E}\u{930}\u{947} \u{92E}\u{947}\u{902} \u{92B}\u{94B}\u{928} \u{92A}\u{930} \u{92C}\u{93E}\u{924} \u{915}\u{930} \u{932}\u{940} \u{939}\u{948} \u{914}\u{930} \u{906}\u{92A}\u{915}\u{947} \u{92C}\u{940}\u{91A} \u{930}\u{947}\u{91F} \u{92D}\u{940} \u{924}\u{92F} \u{939}\u{94B} \u{917}\u{908} \u{939}\u{948}\u{964}\n\n\u{905}\u{917}\u{930} \u{906}\u{92A} \u{907}\u{938} \u{938}\u{94C}\u{926}\u{947} \u{915}\u{94B} \u{92A}\u{915}\u{94D}\u{915}\u{93E} \u{915}\u{930}\u{928}\u{93E} \u{91A}\u{93E}\u{939}\u{924}\u{947} \u{939}\u{948}\u{902} \u{924}\u{94B} \u{928}\u{940}\u{91A}\u{947} \u{926}\u{93F}\u{90F} \u{917}\u{90F} \u{201C}\u{938}\u{94C}\u{926}\u{93E} \u{92A}\u{915}\u{94D}\u{915}\u{93E} \u{915}\u{930}\u{947}\u{902}\u{201D} \u{92C}\u{91F}\u{928} \u{915}\u{94B} \u{926}\u{92C}\u{93E}\u{90F}\u{901}\u{964}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white, fontSize: 13.5, height: 1.25, fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 9),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: FilledButton.icon(
+                        onPressed: () => Navigator.pop(c, true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF8C00),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                        ),
+                        icon: const Icon(Icons.check_circle, size: 23),
+                        label: const Text('\u{938}\u{94C}\u{926}\u{93E} \u{92A}\u{915}\u{94D}\u{915}\u{93E} \u{915}\u{930}\u{947}\u{902}  \u{2192}', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      '(\u{915}\u{93E}\u{92E} \u{92B}\u{93E}\u{907}\u{928}\u{932} \u{915}\u{930}\u{947}\u{902})',
+                      style: TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 7),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 38,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(c, false),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white, width: 1.5),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        ),
+                        child: const Text('\u{921}\u{940}\u{932} \u{915}\u{948}\u{902}\u{938}\u{932} \u{915}\u{930}\u{947}\u{902}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        if (!mounted || confirmed == null) return;
+
+        if (confirmed) {
+          await SupaFlow.client.rpc(
+            'finalize_worker_job_confirmation_v2',
+            params: {'p_job_id': '${j['job_id']}'},
+          );
+          finalized = true;
+          if (!mounted) return;
+          setState(() => future = _load());
+        } else {
+          await SupaFlow.client.rpc(
+            'cancel_worker_job_confirmation',
+            params: {'p_job_id': '${j['job_id']}'},
+          );
+          if (!mounted) return;
+          setState(() => future = _load());
+        }
+      } finally {
+        _confirmationDialogOpen = false;
+      }
+    } catch (e) {
+      _confirmationDialogOpen = false;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_friendlyError(e))),
+        );
+      }
+    }
+  }
+
+
+'@
+
+$s = $s.Substring(0, $start) + $newMethod + $s.Substring($end)
+Set-Content -Path $p -Value $s -Encoding UTF8
+
+Write-Host 'OK: Worker confirmation frontend fixed with confirm + cancel flow.'
+Write-Host 'No placeholder data or Base64 decoding is used.'
