@@ -20,38 +20,33 @@ if (-not $s.Contains("finalized = true;")) {
   $s = $newS
 }
 
-# 3) Add cancel button directly after the visible final-confirm helper text.
+# 3) Add cancel button using the exact helper Text source fragment.
 if (-not $s.Contains("डील कैंसल करें")) {
-  $marker = "काम फाइनल करें"
-  $idx = $s.IndexOf($marker)
-  if ($idx -lt 0) { throw 'Could not find the final-confirm helper text.' }
-
-  # Find the end of the Text(...) statement containing the helper text.
-  $close = $s.IndexOf("),", $idx)
-  if ($close -lt 0) { throw 'Could not locate the end of the helper Text widget.' }
-  $insertAt = $close + 2
-
+  $anchor = "                    const Text('(काम फाइनल करें)', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w800)),"
   $button = @"
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    cancelled = true;
-                    Navigator.pop(c);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white, width: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                  ),
-                  icon: const Icon(Icons.cancel_outlined, size: 22),
-                  label: const Text('डील कैंसल करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-                ),
-              ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          cancelled = true;
+                          Navigator.pop(c);
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white, width: 2),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        ),
+                        icon: const Icon(Icons.cancel_outlined, size: 22),
+                        label: const Text('डील कैंसल करें', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                      ),
+                    ),
 "@
-  $s = $s.Insert($insertAt, "`r`n$button")
+  if (-not $s.Contains($anchor)) {
+    throw 'Could not find the exact final-confirm helper Text source fragment.'
+  }
+  $s = $s.Replace($anchor, "$anchor`r`n$button", 1)
 }
 
 # 4) Cancel must call the backend before finalize.
