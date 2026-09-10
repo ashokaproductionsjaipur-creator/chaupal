@@ -1,0 +1,28 @@
+name: Apply owner job card audio UI
+
+on:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Apply owner job card audio UI') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+      - name: Patch owner job card
+        run: python3 scripts/patch_owner_job_audio.py
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/pages/job_request_management/job_request_management_widget.dart
+          git diff --cached --quiet && exit 0
+          git commit -m "Apply owner job card audio UI"
+          git push origin develop
