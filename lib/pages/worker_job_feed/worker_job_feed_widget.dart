@@ -137,7 +137,7 @@ class _WorkerJobFeedWidgetState extends State<WorkerJobFeedWidget> {
     final t = FlutterFlowTheme.of(context);
     final jobId = j['id'].toString();
     final audio = (j['audio_note'] ?? '').toString();
-    final submitted = _submittedActions[jobId];
+    final submitted = _submittedActions[jobId] ?? j['existing_request_type']?.toString();
     final isBusy = _busyJobs.contains(jobId);
     final locked = submitted != null;
 
