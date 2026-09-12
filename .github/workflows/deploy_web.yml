@@ -32,6 +32,10 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
+      - name: Apply worker deal confirmation fix
+        shell: pwsh
+        run: ./scripts/add_worker_deal_cancel_button.ps1
+
       - name: Configure GitHub Pages
         id: pages
         uses: actions/configure-pages@v5
