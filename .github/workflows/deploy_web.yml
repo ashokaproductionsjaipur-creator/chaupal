@@ -32,13 +32,8 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
-      - name: Apply worker deal confirmation fix
-        shell: pwsh
-        run: ./scripts/add_worker_deal_cancel_button.ps1
-
-      - name: Fix worker confirmation button clipping
-        shell: pwsh
-        run: ./scripts/fix_worker_confirmation_button_clipping.ps1
+      - name: Apply worker confirmation fix
+        run: python3 scripts/apply_worker_confirmation_fix.py
 
       - name: Configure GitHub Pages
         id: pages
