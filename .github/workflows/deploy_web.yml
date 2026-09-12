@@ -36,6 +36,10 @@ jobs:
         shell: pwsh
         run: ./scripts/add_worker_deal_cancel_button.ps1
 
+      - name: Fix worker confirmation button clipping
+        shell: pwsh
+        run: ./scripts/fix_worker_confirmation_button_clipping.ps1
+
       - name: Configure GitHub Pages
         id: pages
         uses: actions/configure-pages@v5
